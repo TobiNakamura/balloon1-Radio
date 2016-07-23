@@ -81,7 +81,13 @@ void setup()
 #endif
   afsk_setup();
   //gps_setup();
-
+  char lat[] = {"125.00N"};
+  char lon[] = {"25W"};
+  char alt[] = {"00000H"};
+  aprs_send(lat, lon, alt, alt, alt);
+  while (afsk_flush()) {
+        pin_write(LED_PIN, HIGH);
+  }
 /*
   // Do not start until we get a valid time reference
   // for slotted transmissions.
@@ -122,17 +128,17 @@ void loop()
     due_link.readBytesUntil('\t',tim_buffer, max_buffer_length);
     due_link.readBytesUntil('\t',alt_buffer, max_buffer_length);
     due_link.readBytesUntil('\n',msg_buffer, max_buffer_length); //message can only be 100 bytes!
-
+/*
     #ifdef debug
       //prints in strange order
       //println(recieved) then time, alt, msg but no lat or lon
-      Serial.print(lat_buffer);
-      Serial.print(lon_buffer);
-      Serial.print(tim_buffer);
-      Serial.print(alt_buffer);
-      Serial.print(msg_buffer);
+      Serial.write(lat_buffer, max_buffer_length);
+      Serial.print(lon_buffer, max_buffer_length);
+      Serial.print(tim_buffer, max_buffer_length);
+      Serial.print(alt_buffer, max_buffer_length);
+      Serial.print(msg_buffer, max_buffer_length);
       Serial.println(" GPS data Recieved");
-    #endif
+    #endif*/
 
     aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
 
