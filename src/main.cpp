@@ -114,14 +114,25 @@ void loop()
   due_link.listen();
   if(due_link.available()) {
     char stateCommand = due_link.read();//v for voltage, a for aprs
+    Serial.write(stateCommand);
     if(stateCommand == 'v'){
       //CHECK VOLTAGE -- vt\r
       new_memset(vol_buffer, 0, max_buffer_length);
-      RS_UV3.print("vt\r");
-      int buffer_length = RS_UV3.readBytesUntil('\r',vol_buffer, max_buffer_length);
-      due_link.write(vol_buffer, buffer_length);
-    }
-    else if(stateCommand == 'a'){
+      RS_UV3.flush();
+      RS_UV3.write("vt\r");
+      //int buffer_length = RS_UV3.readBytesUntil('V',vol_buffer, max_buffer_length);
+      //clear buffer
+      //buffer_length = RS_UV3.readBytesUntil('\r',vol_buffer, max_buffer_length);
+      for (int i=0; i<max_buffer_length; i++){
+        *(vol_buffer+i) = RS_UV3.read();
+      }
+      due_link.write(vol_buffer, max_buffer_length);
+      //Serial.print(vol_buffer, max_buffer_length);
+      for(int i =0; i<max_buffer_length; i++){
+        Serial.print((int)*(vol_buffer+i));
+      }
+      digitalWrite(LED_PIN, HIGH);
+    } else if(stateCommand == 'a'){
       new_memset(lat_buffer, 0, max_buffer_length);
       new_memset(lon_buffer, 0, max_buffer_length);
       new_memset(tim_buffer, 0, max_buffer_length);
