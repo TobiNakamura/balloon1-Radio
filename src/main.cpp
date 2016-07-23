@@ -118,7 +118,7 @@ void loop()
       //CHECK VOLTAGE -- vt\r
       new_memset(vol_buffer, 0, max_buffer_length);
       RS_UV3.print("vt\r");
-      RS_UV3.readBytesUntil('\r',vol_buffer, max_buffer_length);
+      int buffer_length = RS_UV3.readBytesUntil('\r',vol_buffer, max_buffer_length);
       due_link.write(vol_buffer, buffer_length);
     }
     else if(stateCommand == 'a'){
