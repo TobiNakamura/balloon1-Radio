@@ -31,7 +31,7 @@
 #include "config.h"
 #include "afsk_avr.h"
 #include "pin.h"
-#include "radio_RSUV3.h"
+#include "Radio_RSUV3.h"
 #if (ARDUINO + 1) >= 100
 #  include <Arduino.h>
 #else
