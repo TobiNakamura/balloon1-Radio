@@ -98,9 +98,8 @@ void loop()
   // Time for another APRS frame
   //if ((int32_t) (millis() - next_aprs) >= 0) {
   due_link.listen();
-  if(due_link.available() || millis()%100 == 0) {
+  if(due_link.available()) {
     char commandChar = due_link.read();
-    commandChar = 'v';
     if(commandChar == 'a'){
       lat_buffer[0] = 0;
       lon_buffer[0] = 0;
@@ -148,7 +147,7 @@ void loop()
       vol_buffer[written] = '\r';//Readding the terminating \r to simplify processing on the due
       vol_buffer[written+1] = 0;//Still need to NULL terminate
       due_link.write(vol_buffer);
-      Serial.write(vol_buffer);
+      //Serial.write(vol_buffer);
       //may need to flush write buffer here
       due_link.flush();
       due_link.listen();
