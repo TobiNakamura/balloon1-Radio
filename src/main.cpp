@@ -46,6 +46,7 @@ char lon_buffer[max_buffer_length] = {};
 char tim_buffer[max_buffer_length] = {};
 char alt_buffer[max_buffer_length] = {};
 char msg_buffer[max_buffer_length] = {};
+char vol_buffer[max_buffer_length] = {};
 
 
 void setup()
@@ -98,46 +99,65 @@ void loop()
   //if ((int32_t) (millis() - next_aprs) >= 0) {
   due_link.listen();
   if(due_link.available()) {
-    lat_buffer[0] = 0;
-    lon_buffer[0] = 0;
-    tim_buffer[0] = 0;
-    alt_buffer[0] = 0;
-    msg_buffer[0] = 0;
-    int written = due_link.readBytesUntil('\t',lat_buffer, max_buffer_length);
-    lat_buffer[written] = 0;
-    written = due_link.readBytesUntil('\t',lon_buffer, max_buffer_length);
-    lon_buffer[written] = 0;
-    written = due_link.readBytesUntil('\t',tim_buffer, max_buffer_length);
-    tim_buffer[written] = 0;
-    written = due_link.readBytesUntil('\t',alt_buffer, max_buffer_length);
-    alt_buffer[written] = 0;
-    written = due_link.readBytesUntil('\n',msg_buffer, max_buffer_length); //message can only be 100 bytes!
-    msg_buffer[written] = 0;
-#ifdef debug
-    //prints in strange order
-    //println(recieved) then time, alt, msg but no lat or lon
-    Serial.println("due_link: ");
-    Serial.println(lat_buffer);
-    Serial.println(lon_buffer);
-    Serial.println(tim_buffer);
-    Serial.println(alt_buffer);
-    Serial.println(msg_buffer);
-    Serial.println(" GPS data Recieved");
-#endif
+    char commandChar = due_link.read();
+    if(commandChar == 'a'){
+      lat_buffer[0] = 0;
+      lon_buffer[0] = 0;
+      tim_buffer[0] = 0;
+      alt_buffer[0] = 0;
+      msg_buffer[0] = 0;
+      int written = due_link.readBytesUntil('\t',lat_buffer, max_buffer_length);
+      lat_buffer[written] = 0;
+      written = due_link.readBytesUntil('\t',lon_buffer, max_buffer_length);
+      lon_buffer[written] = 0;
+      written = due_link.readBytesUntil('\t',tim_buffer, max_buffer_length);
+      tim_buffer[written] = 0;
+      written = due_link.readBytesUntil('\t',alt_buffer, max_buffer_length);
+      alt_buffer[written] = 0;
+      written = due_link.readBytesUntil('\n',msg_buffer, max_buffer_length); //message can only be 100 bytes!
+      msg_buffer[written] = 0;
+  #ifdef debug
+      //prints in strange order
+      //println(recieved) then time, alt, msg but no lat or lon
+      Serial.println("due_link: ");
+      Serial.println(lat_buffer);
+      Serial.println(lon_buffer);
+      Serial.println(tim_buffer);
+      Serial.println(alt_buffer);
+      Serial.println(msg_buffer);
+      Serial.println(" GPS data Recieved");
+  #endif
 
-    aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+      aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
 
-    while (afsk_flush()) {
-      pin_write(LED_PIN, HIGH);
+      while (afsk_flush()) {
+        pin_write(LED_PIN, HIGH);
+      }
+      pin_write(LED_PIN, LOW);
+  #ifdef DEBUG_MODEM
+      // Show modem ISR stats from the previous transmission
+      afsk_debug();
+  #endif
     }
-    pin_write(LED_PIN, LOW);
-#ifdef DEBUG_MODEM
-    // Show modem ISR stats from the previous transmission
-    afsk_debug();
-#endif
+    else if(commandChar == 'v'){
+      vol_buffer[0] = 0;
+      RS_UV3.listen();
+      RS_UV3.print("vt\r");
+      int written = RS_UV3.readBytesUntil('\r', vol_buffer, max_buffer_length);
+      vol_buffer[written] = '\r';//Readding the terminating \r to simplify processing on the due
+      vol_buffer[written+1] = 0;//Still need to NULL terminate
+      due_link.write(vol_buffer);
+      //Serial.write(vol_buffer);
+      //may need to flush write buffer here
+      due_link.flush();
+      due_link.listen();
+    }
+    else if(commandChar = 's'){//Startup setup
+
+    }
   }
 
-  RS_UV3.listen();
+  /*RS_UV3.listen();
   if (RS_UV3.available()) {
     byte a_buffer[max_buffer_length] = {};
     int buffer_length = 0;
@@ -155,5 +175,5 @@ void loop()
     Serial.print("To Radio: ");
     Serial.write(a_buffer, buffer_length);
   }
-
+*/
 }
