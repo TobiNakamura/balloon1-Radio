@@ -152,9 +152,9 @@ void loop()
       //may need to flush write buffer here
       due_link.listen();
     }
-    /*else if(commandChar = 'd'){//Possible Debug data dump
+    else if(commandChar = 's'){//Possible Debug data dump
 
-    }*/
+    }
   }
 
   /*RS_UV3.listen();
