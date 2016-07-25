@@ -1,11 +1,11 @@
 """
 YouCompleteMe extra configuration for Platformio based
 projects.
+
 Based on the `.ycm_extra_conf.py` by @ladislas in his Bare-Arduino-Project.
+
 Anthony Ford <github.com/ajford>
-----
-Edited on 2016-07-10 to use Arduino Due specific libs/flags
-Steven
+
 """
 import os
 import ycm_core
@@ -28,17 +28,16 @@ PlatformioAutogen = ".pioenvs/"
 ## and slightly increase startup time (while crawling the lib
 ## dir for header files). This will however allow you to
 ## complete for header files you haven't included yet.
-PlatformioLibs = "~/.platformio/packages/framework-arduinosam/libraries/"
+PlatformioArduinoLibs = "~/.platformio/packages/framework-arduinoavr/libraries/"
 
 # Platformio Arduino Core
 ## This links to the Platformio Arduino Cores. This provides 
 ## the core libs, such as Arduino.h and HardwareSerial.h
-PlatformioCore = "~/.platformio/packages/framework-arduinosam/cores/arduino/"
+PlatformioArduinoCore = "~/.platformio/packages/framework-arduinoavr/cores/arduino/"
 
 # Platformio Arduino Std Libs
 ## Arduino Std libs from .platformio packages. Provides stdlib.h and such.
-# Steven: platformio on due platform doesn't use arduino stdlibs, otherwise ycmdiags errors
-#PlatformioSTD = '~/.platformio/packages/toolchain-gccarmnoneeabi/arm-none-eabi/include'
+PlatformioArduinoSTD = '~/.platformio/packages/toolchain-atmelavr/avr/include'
 
 # This is the list of all directories to search for header files.
 # Dirs in this list can be paths relative to this file, absolute
@@ -46,10 +45,15 @@ PlatformioCore = "~/.platformio/packages/framework-arduinosam/cores/arduino/"
 libDirs = [
            "lib"
            ,PlatformioAutogen
-           ,PlatformioCore
-           ,PlatformioLibs
-           #,PlatformioSTD
+           ,PlatformioArduinoCore
+           ,PlatformioArduinoLibs
+           ,PlatformioArduinoSTD
            ]
+# avr-g++ -o .pioenvs/uno/src/main.o -c -fno-exceptions -fno-threadsafe-statics -std=gnu++11 -g -Os -Wall -ffunction-sections -fdata-sections -mmcu=atmega328p -DF_CPU=16000000L -DPLATFORMIO=021101 -DARDUINO_ARCH_AVR -DARDUINO_AVR_UNO -DARDUINO=10608 -I.pioenvs/uno/FrameworkArduino -I.pioenvs/uno/FrameworkArduinoVariant -Isrc src/main.cpp
+# avr-g++ -o .pioenvs/uno/firmware.elf -Os -mmcu=atmega328p -Wl,--gc-sections,--relax .pioenvs/uno/src/main.o -L/home/steven/.platformio/packages/ldscripts -L.pioenvs/uno -Wl,--start-group .pioenvs/uno/libFrameworkArduinoVariant.a .pioenvs/uno/libFrameworkArduino.a -lm -Wl,--end-group
+# "avr-size" --mcu=atmega328p -C -d .pioenvs/uno/firmware.elf
+# avr-objcopy -O ihex -R .eeprom .pioenvs/uno/firmware.elf .pioenvs/uno/firmware.hex
+
 
 flags = [
     # General flags
@@ -58,11 +62,12 @@ flags = [
     ,'-nostdlib'
 
     # Customize microcontroler and Arduino version
-    ,'-mcpu=cortex-m3'
-    ,'-DF_CPU=84000000L'
-    ,'-D__SAM3X8E__'
-    ,'-DARDUINO_ARCH_SAM'
-    ,'-DARDUINO_SAM_DUE'
+    ,'-mmcu=atmega328p'
+    ,'-DAVR' # for aprs AVR ifdef
+    ,'-D__AVR_ATmega8__'
+    ,'-DF_CPU=16000000L'
+    ,'-DARDUINO_ARCH_AVR'
+    ,'-DARDUINO_AVR_UNO'
     ,'-DARDUINO=10608'
     # ,'-MMD -DUSB_VID=null'
     # ,'-DUSB_PID=null'
