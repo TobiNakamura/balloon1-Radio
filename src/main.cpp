@@ -15,23 +15,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-// Mpide 22 fails to compile Arduino code because it stupidly defines ARDUINO
-// as an empty macro (hence the +0 hack). UNO32 builds are fine. Just use the
-// real Arduino IDE for Arduino builds. Optionally complain to the Mpide
-// authors to fix the broken macro.
-#if (ARDUINO + 0) == 0
-#error "Oops! We need the real Arduino IDE (version 22 or 23) for Arduino builds."
-#error "See trackuino.pde for details on this"
-
-// Refuse to compile on arduino version 21 or lower. 22 includes an
-// optimization of the USART code that is critical for real-time operation
-// of the AVR code.
-#elif (ARDUINO + 0) < 22
-#error "Oops! We need Arduino 22 or 23"
-#error "See trackuino.pde for details on this"
-
-#endif
-
 
 #define max_buffer_length 100
 
@@ -55,8 +38,6 @@ SoftwareSerial RS_UV3(8,9);
 // Module constants
 static const uint32_t VALID_POS_TIMEOUT = 2000;  // ms
 
-void new_memset(char *a, char val, int length);
-
 // Module variables
 //static int32_t next_aprs = 0;
 
@@ -65,7 +46,6 @@ char lon_buffer[max_buffer_length] = {};
 char tim_buffer[max_buffer_length] = {};
 char alt_buffer[max_buffer_length] = {};
 char msg_buffer[max_buffer_length] = {};
-
 
 
 void setup()
@@ -118,9 +98,6 @@ void loop()
   //if ((int32_t) (millis() - next_aprs) >= 0) {
   due_link.listen();
   if(due_link.available()) {
-    String trans = due_link.readStringUntil('\n');
-    Serial.print("TRANS: ");
-    Serial.println(trans);
     lat_buffer[0] = 0;
     lon_buffer[0] = 0;
     tim_buffer[0] = 0;
@@ -160,12 +137,14 @@ void loop()
 #endif
   }
 
+  RS_UV3.listen();
   if (RS_UV3.available()) {
     byte a_buffer[max_buffer_length] = {};
     int buffer_length = 0;
     buffer_length = (int)RS_UV3.readBytes(a_buffer, max_buffer_length);
     Serial.print("From Radio: ");
     Serial.write(a_buffer, buffer_length);
+    due_link.write(a_buffer, buffer_length);
   }
 
   if (Serial.available()) {
@@ -177,10 +156,4 @@ void loop()
     Serial.write(a_buffer, buffer_length);
   }
 
-}
-
-void new_memset(char *a, char val, int length) {
-  for(int i=0; i<length; i++){
-    *(a+i) = val;
-  }
 }
