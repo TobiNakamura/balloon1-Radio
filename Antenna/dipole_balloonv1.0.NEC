@@ -1,0 +1,11 @@
+CM 
+CE
+SY dri=1.03813442	'half wavelength of 144.39mhz
+GW	1	21	-dri/2	0	0	dri/2	0	0	#18
+GE	0
+LD	5	1	0	0	58000000
+GN	-1
+EK
+EX	0	1	11	0	1	0	0
+FR	0	0	0	0	144.39	0
+EN

@@ -1,0 +1,21 @@
+CM 
+CE
+SY ref=1.090795761479326823187201329732	'0.9398
+SY dri=1.0388531061707874506544774568876	'0.8636
+SY dir=0.98691045086224807812175358404322	'closest to driver
+SY d1=0.20777062123415749013089549137752	'driver to reflector distance
+SY d2=0.41554124246831498026179098275504	'driver to first director distance
+SY radius=0.003175	'radius of aluminium rods
+GW	1	21	-dri/2	0	0	dri/2	0	0	radius
+GW	2	21	-ref/2	-d1	0	ref/2	-d1	0	radius
+GW	3	21	-dir/2	+d2	0	dir/2	+d2	0	radius
+GM	0	0	0	0	0	0	0	0
+GE	0
+LD	5	1	0	0	37700000
+LD	5	2	0	0	37700000
+LD	5	3	0	0	37700000
+GN	-1
+EK
+EX	0	1	11	0	1	0	0	'Default voltage source
+FR	0	0	0	0	144.39	0
+EN
