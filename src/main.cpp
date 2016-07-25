@@ -148,11 +148,12 @@ void loop()
       vol_buffer[written] = '\r';//Readding the terminating \r to simplify processing on the due
       vol_buffer[written+1] = 0;//Still need to NULL terminate
       due_link.write(vol_buffer);
-      //Serial.write(vol_buffer);
+      Serial.write(vol_buffer);
       //may need to flush write buffer here
+      due_link.flush();
       due_link.listen();
     }
-    else if(commandChar = 's'){//Possible Debug data dump
+    else if(commandChar = 's'){//Startup setup
 
     }
   }
