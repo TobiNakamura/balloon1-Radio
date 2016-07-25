@@ -1,8 +1,8 @@
 CM 
 CE
-SY ref=1.055139	'0.9398
-SY dri=0.939649	'0.8636
-SY dir=0.823876	'0.8382
+SY ref=1.00	'0.9398
+SY dri=0.942955	'0.8636
+SY dir=0.696157	'0.8382
 SY d2=0.421591	'driver to reflector distance
 SY radius=0.003175	'radius of aluminium rods
 SY d1=0.6562	'driver to director distance

@@ -1,9 +1,9 @@
 CM 
 CM forw: 90, 90 ; back: 90, 270
 CE
-SY ref=1.00	'0.9398
-SY dri=0.939649	'0.8636
-SY dir=0.823876	'0.8382
+SY ref=1.018705	'0.9398
+SY dri=0.941045	'0.8636
+SY dir=0.694973	'0.8382
 SY d2=0.421591	'driver to reflector distance
 SY radius=0.003175	'radius of aluminium rods
 SY d1=0.6562	'driver to director distance
@@ -21,3 +21,4 @@ EX	0	1	11	0	1	0	0	'Default voltage source
 FR,0,1,0,0,144.39
 PQ -1
 PT -1
+RP,0,37,73,1003,-180,0,5,5
