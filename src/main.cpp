@@ -48,6 +48,7 @@ char alt_buffer[max_buffer_length] = {};
 char msg_buffer[max_buffer_length] = {};
 char vol_buffer[max_buffer_length] = {};
 
+void clearSerialBuffers();
 
 void setup()
 {
@@ -129,7 +130,7 @@ void loop()
   #endif
       RS_UV3.print("pd0\r");//Power up the transiever
       RS_UV3.flush();//Ensure write is complete
-      delay(100);//Ensure the transiever has powered on
+      delay(2000);//Ensure the transiever has powered on
       aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
       while (afsk_flush()) {
         pin_write(LED_PIN, HIGH);
@@ -142,6 +143,9 @@ void loop()
       delay(50);//This is likely not necassary
       RS_UV3.print("pd1\r");
       RS_UV3.flush();
+      while(RS_UV3.available()){//Clear the read buffer in case anything is in it
+        RS_UV3.read();
+      }
     }
     else if(commandChar == 'v'){
       vol_buffer[0] = 0;
@@ -154,6 +158,7 @@ void loop()
       //Serial.write(vol_buffer);
       //may need to flush write buffer here
       due_link.flush();
+      clearSerialBuffers();
       due_link.listen();
     }
     else if(commandChar = 's'){//Startup setup
@@ -174,13 +179,15 @@ void loop()
       RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
       RS_UV3.flush();
       delay(50);
+
+      RS_UV3.print("PW0\r");//This sets to LOW frequency!!!
+      RS_UV3.flush();
+      delay(50);
       //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
       RS_UV3.print("pd1\r");//Turn off the transiever chip
       RS_UV3.flush();
       delay(50);//Delay for 50 milliseconds to ensure command is copleted
-      while(RS_UV3.available()){//Clear the read buffer in case anything is in it
-        RS_UV3.read();
-      }
+      clearSerialBuffers();
       due_link.listen();
     }
   }
@@ -204,4 +211,13 @@ void loop()
     Serial.write(a_buffer, buffer_length);
   }
 */
+}
+
+void clearSerialBuffers(){
+  while(RS_UV3.available()){//Clear the read buffer in case anything is in it
+    RS_UV3.read();
+  }
+  while(due_link.available()){
+    due_link.read();
+  }
 }
