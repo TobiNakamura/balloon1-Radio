@@ -127,9 +127,10 @@ void loop()
       Serial.println(msg_buffer);
       Serial.println(" GPS data Recieved");
   #endif
-
+      RS_UV3.print("pd0\r");//Power up the transiever
+      RS_UV3.flush();//Ensure write is complete
+      delay(100);//Ensure the transiever has powered on
       aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-
       while (afsk_flush()) {
         pin_write(LED_PIN, HIGH);
       }
@@ -138,6 +139,9 @@ void loop()
       // Show modem ISR stats from the previous transmission
       afsk_debug();
   #endif
+      delay(50);//This is likely not necassary
+      RS_UV3.print("pd1\r");
+      RS_UV3.flush();
     }
     else if(commandChar == 'v'){
       vol_buffer[0] = 0;
@@ -153,7 +157,31 @@ void loop()
       due_link.listen();
     }
     else if(commandChar = 's'){//Startup setup
+      RS_UV3.listen();
+      //b13\r -- set baud rate
+      //fs144390
+      //pd1 --power on transeiver
+      //pw0
+      //sq9
+      /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
+      RS_UV3.flush();//Flush the write buffer
+      delay(50);*/
 
+      RS_UV3.print("fs144390\r");
+      RS_UV3.flush();
+      delay(50);
+
+      RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
+      RS_UV3.flush();
+      delay(50);
+      //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
+      RS_UV3.print("pd1\r");//Turn off the transiever chip
+      RS_UV3.flush();
+      delay(50);//Delay for 50 milliseconds to ensure command is copleted
+      while(RS_UV3.available()){//Clear the read buffer in case anything is in it
+        RS_UV3.read();
+      }
+      due_link.listen();
     }
   }
 
