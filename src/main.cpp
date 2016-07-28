@@ -49,6 +49,7 @@ char msg_buffer[max_buffer_length] = {};
 char vol_buffer[max_buffer_length] = {};
 
 void clearSerialBuffers();
+void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
 
 void setup()
 {
@@ -68,10 +69,7 @@ void setup()
   char tim[] = {"200000"};
   char alt[] = {"300"};
   char msg[] = {"Hello from the SFU Satellite Club"};
-  aprs_send(lat, lon, tim, alt, msg);
-  while (afsk_flush()) {
-    pin_write(LED_PIN, HIGH);
-  }
+  transmitService(lat, lon, tim, alt, msg);
 }
 
 
@@ -112,24 +110,7 @@ void loop()
       Serial.println(msg_buffer);
       Serial.println(" GPS data Recieved");
   #endif
-      RS_UV3.print("pd0\r");//Power up the transiever
-      RS_UV3.flush();//Ensure write is complete
-      delay(2000);//Ensure the transiever has powered on
-      aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
-      while (afsk_flush()) {
-        pin_write(LED_PIN, HIGH);
-      }
-      pin_write(LED_PIN, LOW);
-  #ifdef DEBUG_MODEM
-      // Show modem ISR stats from the previous transmission
-      afsk_debug();
-  #endif
-      delay(50);//This is likely not necassary
-      RS_UV3.print("pd1\r");
-      RS_UV3.flush();
-      while(RS_UV3.available()){//Clear the read buffer in case anything is in it
-        RS_UV3.read();
-      }
+      transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
     }
     else if(commandChar == 'v'){
       vol_buffer[0] = 0;
@@ -144,8 +125,7 @@ void loop()
       due_link.flush();
       clearSerialBuffers();
       due_link.listen();
-    }
-    else if(commandChar = 's'){//Startup setup
+    } else if(commandChar == 's'){//Startup setup
       RS_UV3.listen();
       //b13\r -- set baud rate
       //fs144390
@@ -175,26 +155,27 @@ void loop()
       due_link.listen();
     }
   }
+}
 
-  /*RS_UV3.listen();
-  if (RS_UV3.available()) {
-    byte a_buffer[max_buffer_length] = {};
-    int buffer_length = 0;
-    buffer_length = (int)RS_UV3.readBytes(a_buffer, max_buffer_length);
-    Serial.print("From Radio: ");
-    Serial.write(a_buffer, buffer_length);
-    due_link.write(a_buffer, buffer_length);
+void transmitService(char *lat, char *lon, char *time, char *alt, char *msg){
+  RS_UV3.print("pd0\r");//Power up the transiever
+  RS_UV3.flush();//Ensure write is complete
+  delay(2000);//Ensure the transiever has powered on
+  aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
+  while (afsk_flush()) {
+    pin_write(LED_PIN, HIGH);
   }
-
-  if (Serial.available()) {
-    Serial.println();
-    byte a_buffer[max_buffer_length] = {};
-    int buffer_length = 0;
-    buffer_length = (int)Serial.readBytes(a_buffer, max_buffer_length);
-    Serial.print("To Radio: ");
-    Serial.write(a_buffer, buffer_length);
+  pin_write(LED_PIN, LOW);
+  #ifdef DEBUG_MODEM
+  // Show modem ISR stats from the previous transmission
+  afsk_debug();
+  #endif
+  delay(50);//This is likely not necassary
+  RS_UV3.print("pd1\r");
+  RS_UV3.flush();
+  while(RS_UV3.available()){//Clear the read buffer in case anything is in it
+    RS_UV3.read();
   }
-*/
 }
 
 void clearSerialBuffers(){
