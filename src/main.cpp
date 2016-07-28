@@ -63,31 +63,15 @@ void setup()
 #endif
   afsk_setup();
   //gps_setup();
-  char lat[] = {"125.00N"};
-  char lon[] = {"25W"};
-  char alt[] = {"00000H"};
-  aprs_send(lat, lon, alt, alt, alt);
+  char lat[] = {"4916.38"};
+  char lon[] = {"12255.28"};
+  char tim[] = {"200000"};
+  char alt[] = {"300"};
+  char msg[] = {"Hello from the SFU Satellite Club"};
+  aprs_send(lat, lon, tim, alt, msg);
   while (afsk_flush()) {
     pin_write(LED_PIN, HIGH);
   }
-  /*
-  // Do not start until we get a valid time reference
-  // for slotted transmissions.
-  if (APRS_SLOT >= 0) {
-  do {
-  while (! Serial.available())
-
-  } while (! gps_decode(Serial.read()));
-  next_aprs = millis() + 1000 *
-  (APRS_PERIOD - (gps_seconds + APRS_PERIOD - APRS_SLOT) % APRS_PERIOD);
-  }
-  else {
-  next_aprs = millis();
-  }
-  */
-  //next_aprs = millis() + 1000 * APRS_PERIOD;
-
-
 }
 
 
@@ -131,7 +115,7 @@ void loop()
       RS_UV3.print("pd0\r");//Power up the transiever
       RS_UV3.flush();//Ensure write is complete
       delay(2000);//Ensure the transiever has powered on
-      aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+      aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
       while (afsk_flush()) {
         pin_write(LED_PIN, HIGH);
       }
@@ -180,7 +164,7 @@ void loop()
       RS_UV3.flush();
       delay(50);
 
-      RS_UV3.print("PW0\r");//This sets to LOW frequency!!!
+      RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
       RS_UV3.flush();
       delay(50);
       //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
