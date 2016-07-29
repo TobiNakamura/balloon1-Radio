@@ -66,7 +66,7 @@ void setup()
   //gps_setup();
   char lat[] = {"4916.38N"};
   char lon[] = {"12255.28W"};
-  char time[] = {"280720/"};
+  char tim[] = {"280720/"};
   char alt[] = {"000000"};
   char msg[] = {"http://sfusat.com"};
   transmitService(lat, lon, tim, alt, msg);
