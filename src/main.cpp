@@ -64,11 +64,11 @@ void setup()
 #endif
   afsk_setup();
   //gps_setup();
-  char lat[] = {"4916.38"};
-  char lon[] = {"12255.28"};
-  char tim[] = {"200000"};
-  char alt[] = {"300"};
-  char msg[] = {"Hello from the SFU Satellite Club"};
+  char lat[] = {"4916.38N"};
+  char lon[] = {"12255.28W"};
+  char time[] = {"280720/"};
+  char alt[] = {"000000"};
+  char msg[] = {"http://sfusat.com"};
   transmitService(lat, lon, tim, alt, msg);
 }
 
