@@ -53,7 +53,6 @@ void aprs_send(char *lat, char *lon, char *gps_time, char *alt, char *msg)
   ax25_send_byte('/');                // Report w/ timestamp, no APRS messaging. $ = NMEA raw data
   // ax25_send_string("021709z");     // 021709z = 2nd day of the month, 17:09 zulu (UTC/GMT)
   ax25_send_string(gps_time);         // 170915 = 17h:09m:15s zulu (not allowed in Status Reports)
-  ax25_send_byte('h');
   ax25_send_string(lat);     // Lat: 38deg and 22.20 min (.20 are NOT seconds, but 1/100th of minutes)
   ax25_send_byte('/');                // Symbol table
   ax25_send_string(lon);     // Lon: 000deg and 25.80 min
@@ -62,12 +61,11 @@ void aprs_send(char *lat, char *lon, char *gps_time, char *alt, char *msg)
   /*ax25_send_string(course);             // Course (degrees)
   ax25_send_byte('/');                // and
   //snprintf(temp, 4, "%03d", (int)(gps_speed + 0.5));
-  ax25_send_string(speed);             // speed (knots)
-  ax25_send_string("/A=");            // Altitude (feet). Goes anywhere in the comment area   */
+  ax25_send_string(speed);             // speed (knots)*/
   //snprintf(temp, 7, "%06ld", (long)(meters_to_feet(gps_altitude) + 0.5));
-  ax25_send_string(alt);
-  ax25_send_byte(' ');
   ax25_send_string(msg);     // Comment
+  ax25_send_string("/A=");
+  ax25_send_string(alt);
   ax25_send_footer();
 
   ax25_flush_frame();                 // Tell the modem to go

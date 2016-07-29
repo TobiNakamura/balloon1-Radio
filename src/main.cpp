@@ -62,13 +62,18 @@ void setup()
 #endif
   afsk_setup();
   //gps_setup();
-  char lat[] = {"125.00N"};
-  char lon[] = {"25W"};
-  char alt[] = {"00000H"};
-  aprs_send(lat, lon, alt, alt, alt);
+
+  pin_write(LED_PIN, LOW);
+  char lat[] = {"4916.38N"};
+  char lon[] = {"12255.28W"};
+  char time[] = {"280720/"};
+  char alt[] = {"000000"};
+  char msg[] = {"http://sfusat.com"};
+  aprs_send(lat, lon, time, alt, msg);
   while (afsk_flush()) {
     pin_write(LED_PIN, HIGH);
   }
+  pin_write(LED_PIN, LOW);
   /*
   // Do not start until we get a valid time reference
   // for slotted transmissions.
