@@ -1,0 +1,29 @@
+CM 
+CE
+SY ref=0.3579545454545455
+SY ddr=0.0340909090909091	'driver to reflector distance
+SY dri=0.3409090909090909
+SY ddd1=0.0681818181818182	'driver to director1 distance
+SY dir1=0.3238636363636364
+SY ddd2=0.0681818181818182	'driver to director2 distance
+SY dir2=0.3076704545454545
+SY ddd3=0.0681818181818182
+SY dir3=0.2922869318181818
+SY radius=0.003175	'radius of aluminium rods
+GW	1	21	-dri/2	0	0	dri/2	0	0	radius
+GW	2	21	-ref/2	-ddr	0	ref/2	-ddr	0	radius
+GW	3	21	-(dir1)/2	ddd1	0	(dir1)/2	ddd1	0	radius
+GW	4	21	-(dir2)/2	ddd1+ddd2	0	(dir2)/2	ddd1+ddd2	0	radius
+GW	5	21	-(dir3)/2	ddd1+ddd2+ddd3	0	(dir3)/2	ddd1+ddd2+ddd3	0	radius
+GM	0	0	0	0	0	0	0	0
+GE	0
+LD	5	1	0	0	37700000
+LD	5	2	0	0	37700000
+LD	5	3	0	0	37700000
+LD	5	4	0	0	37700000
+LD	5	5	0	0	37700000
+GN	-1
+EK
+EX	0	1	11	0	1	0	0	'Default voltage source
+FR	0	0	0	0	440	0
+EN
