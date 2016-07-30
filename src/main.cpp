@@ -59,6 +59,34 @@ void setup()
 
   pinMode(13, OUTPUT);
 
+  RS_UV3.listen();
+  //b13\r -- set baud rate
+  //fs144390
+  //pd1 --power on transeiver
+  //pw0
+  //sq9
+  /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
+  RS_UV3.flush();//Flush the write buffer
+  delay(50);*/
+
+  RS_UV3.print("fs144390\r");
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("PW1\r"); //pw1 and pw0 draw the same amount of power
+  RS_UV3.flush();
+  delay(50);
+  //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
+  RS_UV3.print("pd1\r");//Turn off the transiever chip
+  RS_UV3.flush();
+  delay(50);//Delay for 50 milliseconds to ensure command is copleted
+  clearSerialBuffers();
+
+
 #ifdef DEBUG_RESET
   Serial.println("RESET");
 #endif
