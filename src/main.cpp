@@ -60,6 +60,7 @@ void setup()
   pinMode(13, OUTPUT);
 
   RS_UV3.listen();
+  delay(1000);
   //b13\r -- set baud rate
   //fs144390
   //pd1 --power on transeiver
@@ -77,7 +78,7 @@ void setup()
   RS_UV3.flush();
   delay(50);
 
-  RS_UV3.print("PW1\r"); //pw1 and pw0 draw the same amount of power
+  RS_UV3.print("PW0\r"); //pw1 and pw0 draw the same amount of power
   RS_UV3.flush();
   delay(50);
   //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
