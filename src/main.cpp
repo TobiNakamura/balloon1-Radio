@@ -54,13 +54,16 @@ void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
 void setup()
 {
   Serial.begin(115200);
-  due_link.begin(19200);
+  due_link.begin(19200); //all communication between due an uno will be terminated by \r
   RS_UV3.begin(19200);
 
   pinMode(13, OUTPUT);
 
-  RS_UV3.listen();
-  delay(1000);
+
+  //RS_UV3.listen();
+  //delay(1000);
+
+
   //b13\r -- set baud rate
   //fs144390
   //pd1 --power on transeiver
@@ -70,6 +73,7 @@ void setup()
   RS_UV3.flush();//Flush the write buffer
   delay(50);*/
 
+/*
   RS_UV3.print("fs144390\r");
   RS_UV3.flush();
   delay(50);
@@ -86,6 +90,7 @@ void setup()
   RS_UV3.flush();
   delay(50);//Delay for 50 milliseconds to ensure command is copleted
   clearSerialBuffers();
+  */
 
 
 #ifdef DEBUG_RESET
@@ -98,12 +103,50 @@ void setup()
   char tim[] = {"280720/"};
   char alt[] = {"000000"};
   char msg[] = {"http://sfusat.com"};
-  transmitService(lat, lon, tim, alt, msg);
+  //transmitService(lat, lon, tim, alt, msg);
+  due_link.listen();
+  while(true) {
+    Serial.println("waiting for setup");
+    if(due_link.read()=='s'){
+    due_link.print("ack\r"); //getting ack \n at due (space in between ack and \n)
+    Serial.println("starting setup");
+    RS_UV3.listen();
+    //b13\r -- set baud rate
+    //fs144390
+    //pd1 --power on transeiver
+    //pw0
+    //sq9
+    /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
+    RS_UV3.flush();//Flush the write buffer
+    delay(50);*/
+
+    RS_UV3.print("fs144390\r");
+    RS_UV3.flush();
+    delay(50);
+
+    RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
+    RS_UV3.flush();
+    delay(50);
+
+    RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
+    RS_UV3.flush();
+    delay(50);
+    //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
+    RS_UV3.print("pd1\r");//Turn off the transiever chip
+    RS_UV3.flush();
+    delay(50);//Delay for 50 milliseconds to ensure command is copleted
+    clearSerialBuffers();
+    due_link.listen();
+    Serial.println("done setup");
+    break;
+  }
+  }
 }
 
 
 void loop()
 {
+
   //setup interrupt from due to signal uno to start listenning
   //while not interrupted, listen to radio serial
 
@@ -126,18 +169,21 @@ void loop()
       tim_buffer[written] = 0;
       written = due_link.readBytesUntil('\t',alt_buffer, max_buffer_length);
       alt_buffer[written] = 0;
-      written = due_link.readBytesUntil('\n',msg_buffer, max_buffer_length); //message can only be 100 bytes!
+      written = due_link.readBytesUntil('\r',msg_buffer, max_buffer_length); //message can only be 100 bytes!
       msg_buffer[written] = 0;
   #ifdef debug
       //prints in strange order
       //println(recieved) then time, alt, msg but no lat or lon
-      Serial.println("due_link: ");
-      Serial.println(lat_buffer);
-      Serial.println(lon_buffer);
-      Serial.println(tim_buffer);
-      Serial.println(alt_buffer);
+      Serial.print("GPS recieved: ");
+      Serial.print(lat_buffer);
+      Serial.print("N ");
+      Serial.print(lon_buffer);
+      Serial.print("W ");
+      Serial.print(tim_buffer);
+      Serial.print("epoch ");
+      Serial.print(alt_buffer);
+      Serial.print("m ");
       Serial.println(msg_buffer);
-      Serial.println(" GPS data Recieved");
   #endif
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
     }
@@ -146,7 +192,7 @@ void loop()
       RS_UV3.listen();
       RS_UV3.print("vt\r");
       int written = RS_UV3.readBytesUntil('\r', vol_buffer, max_buffer_length);
-      vol_buffer[written] = '\r';//Readding the terminating \r to simplify processing on the due
+      vol_buffer[written] = '\n';//Readding the terminating \r to simplify processing on the due
       vol_buffer[written+1] = 0;//Still need to NULL terminate
       due_link.write(vol_buffer);
       //Serial.write(vol_buffer);
@@ -182,6 +228,8 @@ void loop()
       delay(50);//Delay for 50 milliseconds to ensure command is copleted
       clearSerialBuffers();
       due_link.listen();
+    } else {
+      while(due_link.available()){due_link.read();}
     }
   }
 }
