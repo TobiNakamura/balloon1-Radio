@@ -15,31 +15,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
-#define max_buffer_length 100
-
-
 // Trackuino custom libs
 #include "config.h"
 #include "afsk_avr.h"
 #include "aprs.h"
 #include "pin.h"
-//#include "gps.h"
-
-// Arduino/AVR libs
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
 #define debug 1
+#define max_buffer_length 100
 
 SoftwareSerial due_link(5,6);
 SoftwareSerial RS_UV3(8,9);
-
-// Module constants
-static const uint32_t VALID_POS_TIMEOUT = 2000;  // ms
-
-// Module variables
-//static int32_t next_aprs = 0;
 
 char lat_buffer[max_buffer_length] = {};
 char lon_buffer[max_buffer_length] = {};
@@ -52,16 +40,12 @@ void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
 void radioReset();
 
-void setup()
-{
+void setup(){
   Serial.begin(115200);
   due_link.begin(19200); //all communication between due an uno will be terminated by \r
   RS_UV3.begin(19200);
-
   pinMode(13, OUTPUT);
-
   radioReset();
-
   afsk_setup();
 
 #ifdef debug
@@ -110,8 +94,7 @@ void loop(){
       Serial.println(msg_buffer);
   #endif
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-    }
-    else if(commandChar == 'v'){
+    }else if(commandChar == 'v'){
       param_buffer[0] = 0;
       RS_UV3.listen();
       RS_UV3.print("vt\r");
@@ -149,6 +132,9 @@ void loop(){
       radioReset();
       due_link.listen();
     } else {
+      #ifdef debug
+      Serial.println("Invalid command char from Due, discarding buffer");
+      #endif
       clearSerialBuffers();
     }
   }
