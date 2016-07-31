@@ -64,6 +64,7 @@ void setup()
   //gps_setup();
 
   pin_write(LED_PIN, LOW);
+  
   char lat[] = {"4916.38N"};
   char lon[] = {"12255.28W"};
   char tim[] = {"280720/"};
