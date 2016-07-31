@@ -62,12 +62,10 @@ void setup()
 
   radioReset();
 
-#ifdef DEBUG_RESET
-  Serial.println("RESET");
-#endif
   afsk_setup();
-  //gps_setup();
+
 #ifdef debug
+  Serial.println("Reseting by own volition");
   char lat[] = {"4916.38"};
   char lon[] = {"12255.28"};
   char tim[] = {"280720"};
@@ -79,14 +77,7 @@ void setup()
 }
 
 
-void loop()
-{
-
-  //setup interrupt from due to signal uno to start listenning
-  //while not interrupted, listen to radio serial
-
-  // Time for another APRS frame
-  //if ((int32_t) (millis() - next_aprs) >= 0) {
+void loop(){
   due_link.listen();
   if(due_link.available()) {
     char commandChar = due_link.read();
@@ -129,6 +120,10 @@ void loop()
       param_buffer[written+1] = 0;//Still need to NULL terminate
       due_link.write(param_buffer);
       due_link.flush();
+      #ifdef debug
+      Serial.print("voltage: ");
+      Serial.write(param_buffer);
+      #endif
       clearSerialBuffers();
       due_link.listen();
     } else if(commandChar == 't'){
@@ -140,10 +135,17 @@ void loop()
       param_buffer[written+1] = 0;//Still need to NULL terminate
       due_link.write(param_buffer);
       due_link.flush();
+      #ifdef debug
+      Serial.print("temperature: ");
+      Serial.write(param_buffer);
+      #endif
       clearSerialBuffers();
       due_link.listen();
     } else if(commandChar == 's'){//Startup setup
       due_link.print("ack\r"); //getting ack \n at due (space in between ack and \n)
+      #ifdef debug
+      Serial.println("resetting by command of Due");
+      #endif
       radioReset();
       due_link.listen();
     } else {
@@ -182,14 +184,6 @@ void clearSerialBuffers(){
 
 void radioReset(){
   RS_UV3.listen();
-  //b13\r -- set baud rate
-  //fs144390
-  //pd1 --power on transeiver
-  //pw0
-  //sq9
-  /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
-  RS_UV3.flush();//Flush the write buffer
-  delay(50);*/
 
   RS_UV3.print("fs144390\r");
   RS_UV3.flush();
