@@ -46,10 +46,11 @@ char lon_buffer[max_buffer_length] = {};
 char tim_buffer[max_buffer_length] = {};
 char alt_buffer[max_buffer_length] = {};
 char msg_buffer[max_buffer_length] = {};
-char vol_buffer[max_buffer_length] = {};
+char param_buffer[max_buffer_length] = {};
 
 void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
+void radioReset();
 
 void setup()
 {
@@ -59,88 +60,22 @@ void setup()
 
   pinMode(13, OUTPUT);
 
-
-  //RS_UV3.listen();
-  //delay(1000);
-
-
-  //b13\r -- set baud rate
-  //fs144390
-  //pd1 --power on transeiver
-  //pw0
-  //sq9
-  /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
-  RS_UV3.flush();//Flush the write buffer
-  delay(50);*/
-
-/*
-  RS_UV3.print("fs144390\r");
-  RS_UV3.flush();
-  delay(50);
-
-  RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
-  RS_UV3.flush();
-  delay(50);
-
-  RS_UV3.print("PW0\r"); //pw1 and pw0 draw the same amount of power
-  RS_UV3.flush();
-  delay(50);
-  //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
-  RS_UV3.print("pd1\r");//Turn off the transiever chip
-  RS_UV3.flush();
-  delay(50);//Delay for 50 milliseconds to ensure command is copleted
-  clearSerialBuffers();
-  */
-
+  radioReset();
 
 #ifdef DEBUG_RESET
   Serial.println("RESET");
 #endif
   afsk_setup();
   //gps_setup();
-  char lat[] = {"4916.38N"};
-  char lon[] = {"12255.28W"};
-  char tim[] = {"280720/"};
-  char alt[] = {"000000"};
+#ifdef debug
+  char lat[] = {"4916.38"};
+  char lon[] = {"12255.28"};
+  char tim[] = {"280720"};
+  char alt[] = {"000"};
   char msg[] = {"http://sfusat.com"};
-  //transmitService(lat, lon, tim, alt, msg);
+  transmitService(lat, lon, tim, alt, msg);
+#endif
   due_link.listen();
-  while(true) {
-    Serial.println("waiting for setup");
-    if(due_link.read()=='s'){
-    due_link.print("ack\r"); //getting ack \n at due (space in between ack and \n)
-    Serial.println("starting setup");
-    RS_UV3.listen();
-    //b13\r -- set baud rate
-    //fs144390
-    //pd1 --power on transeiver
-    //pw0
-    //sq9
-    /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
-    RS_UV3.flush();//Flush the write buffer
-    delay(50);*/
-
-    RS_UV3.print("fs144390\r");
-    RS_UV3.flush();
-    delay(50);
-
-    RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
-    RS_UV3.flush();
-    delay(50);
-
-    RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
-    RS_UV3.flush();
-    delay(50);
-    //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
-    RS_UV3.print("pd1\r");//Turn off the transiever chip
-    RS_UV3.flush();
-    delay(50);//Delay for 50 milliseconds to ensure command is copleted
-    clearSerialBuffers();
-    due_link.listen();
-    Serial.println("done setup");
-    break;
-  }
-  }
 }
 
 
@@ -172,8 +107,6 @@ void loop()
       written = due_link.readBytesUntil('\r',msg_buffer, max_buffer_length); //message can only be 100 bytes!
       msg_buffer[written] = 0;
   #ifdef debug
-      //prints in strange order
-      //println(recieved) then time, alt, msg but no lat or lon
       Serial.print("GPS recieved: ");
       Serial.print(lat_buffer);
       Serial.print("N ");
@@ -188,48 +121,33 @@ void loop()
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
     }
     else if(commandChar == 'v'){
-      vol_buffer[0] = 0;
+      param_buffer[0] = 0;
       RS_UV3.listen();
       RS_UV3.print("vt\r");
-      int written = RS_UV3.readBytesUntil('\r', vol_buffer, max_buffer_length);
-      vol_buffer[written] = '\n';//Readding the terminating \r to simplify processing on the due
-      vol_buffer[written+1] = 0;//Still need to NULL terminate
-      due_link.write(vol_buffer);
-      //Serial.write(vol_buffer);
-      //may need to flush write buffer here
+      int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+      param_buffer[written] = '\r';
+      param_buffer[written+1] = 0;//Still need to NULL terminate
+      due_link.write(param_buffer);
+      due_link.flush();
+      clearSerialBuffers();
+      due_link.listen();
+    } else if(commandChar == 't'){
+      param_buffer[0] = 0;
+      RS_UV3.listen();
+      RS_UV3.print("tp\r");
+      int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+      param_buffer[written] = '\r';
+      param_buffer[written+1] = 0;//Still need to NULL terminate
+      due_link.write(param_buffer);
       due_link.flush();
       clearSerialBuffers();
       due_link.listen();
     } else if(commandChar == 's'){//Startup setup
-      RS_UV3.listen();
-      //b13\r -- set baud rate
-      //fs144390
-      //pd1 --power on transeiver
-      //pw0
-      //sq9
-      /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
-      RS_UV3.flush();//Flush the write buffer
-      delay(50);*/
-
-      RS_UV3.print("fs144390\r");
-      RS_UV3.flush();
-      delay(50);
-
-      RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
-      RS_UV3.flush();
-      delay(50);
-
-      RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
-      RS_UV3.flush();
-      delay(50);
-      //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
-      RS_UV3.print("pd1\r");//Turn off the transiever chip
-      RS_UV3.flush();
-      delay(50);//Delay for 50 milliseconds to ensure command is copleted
-      clearSerialBuffers();
+      due_link.print("ack\r"); //getting ack \n at due (space in between ack and \n)
+      radioReset();
       due_link.listen();
     } else {
-      while(due_link.available()){due_link.read();}
+      clearSerialBuffers();
     }
   }
 }
@@ -250,9 +168,7 @@ void transmitService(char *lat, char *lon, char *time, char *alt, char *msg){
   delay(50);//This is likely not necassary
   RS_UV3.print("pd1\r");
   RS_UV3.flush();
-  while(RS_UV3.available()){//Clear the read buffer in case anything is in it
-    RS_UV3.read();
-  }
+  clearSerialBuffers();
 }
 
 void clearSerialBuffers(){
@@ -262,4 +178,33 @@ void clearSerialBuffers(){
   while(due_link.available()){
     due_link.read();
   }
+}
+
+void radioReset(){
+  RS_UV3.listen();
+  //b13\r -- set baud rate
+  //fs144390
+  //pd1 --power on transeiver
+  //pw0
+  //sq9
+  /*RS_UV3.print("b13\r");//Set baud rate to 19200 -- commented out since reboot required & if this command can be interpreted then it's at 19200
+  RS_UV3.flush();//Flush the write buffer
+  delay(50);*/
+
+  RS_UV3.print("fs144390\r");
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
+  RS_UV3.flush();
+  delay(50);
+  //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
+  RS_UV3.print("pd1\r");//Turn off the transiever chip
+  RS_UV3.flush();
+  delay(50);//Delay for 50 milliseconds to ensure command is copleted
+  clearSerialBuffers();
 }
