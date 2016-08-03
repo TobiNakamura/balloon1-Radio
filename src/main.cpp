@@ -49,8 +49,8 @@ void setup(){
   afsk_setup();
 
 #ifdef debug
-  Serial.println("Reseting by own volition");
   RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
+  Serial.println("Reseting by own volition");
   char lat[] = {"4916.38"};
   char lon[] = {"12255.28"};
   char tim[] = {"280720"};
