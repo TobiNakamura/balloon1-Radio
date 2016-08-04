@@ -49,15 +49,12 @@ void setup(){
   afsk_setup();
 
 #ifdef debug
-  RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
   Serial.println("Reseting by own volition");
   char lat[] = {"4916.38"};
   char lon[] = {"12255.28"};
   char tim[] = {"280720"};
-  char alt[] = {"000"};
+  char alt[] = {"000000"};
   char msg[] = {"http://sfusat.com"};
-  RS_UV3.flush();
-  delay(50);
   transmitService(lat, lon, tim, alt, msg);
 #endif
 
@@ -91,8 +88,9 @@ void loop(){
       Serial.print("N ");
       Serial.print(lon_buffer);
       Serial.print("W ");
-      Serial.print(tim_buffer);
       Serial.print("epoch ");
+      Serial.print(tim_buffer);
+      Serial.print("altitude ");
       Serial.print(alt_buffer);
       Serial.print("m ");
       Serial.println(msg_buffer);
@@ -144,11 +142,11 @@ void loop(){
   }
 }
 
-void transmitService(char *lat, char *lon, char *time, char *alt, char *msg){
+void transmitService(char *lat, char *lon, char *tim, char *alt, char *msg){
   RS_UV3.print("pd0\r");//Power up the transiever
   RS_UV3.flush();//Ensure write is complete
   delay(2000);//Ensure the transiever has powered on
-  aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
+  aprs_send(lat, lon, tim, alt, msg); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
   while (afsk_flush()) {
     pin_write(LED_PIN, HIGH);
   }
@@ -183,7 +181,7 @@ void radioReset(){
   RS_UV3.flush();
   delay(50);
 
-  RS_UV3.print("PW0\r");//This sets to LOW power!!! or does it?
+  RS_UV3.print("PW1\r");//This sets to HIGH power!!! Tobi confirms
   RS_UV3.flush();
   delay(50);
   //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
