@@ -173,6 +173,9 @@ void clearSerialBuffers(){
 void radioReset(){
   RS_UV3.listen();
 
+  //check if the radio is on channel 0
+
+
   RS_UV3.print("fs144390\r");
   RS_UV3.flush();
   delay(50);

@@ -53,6 +53,7 @@ void aprs_send(char *lat, char *lon, char *gps_time, char *alt, char *msg)
   ax25_send_byte('/');                // Report w/ timestamp, no APRS messaging. $ = NMEA raw data
   // ax25_send_string("021709z");     // 021709z = 2nd day of the month, 17:09 zulu (UTC/GMT)
   ax25_send_string(gps_time);         // 170915 = 17h:09m:15s zulu (not allowed in Status Reports)
+  ax25_send_byte('/');
   ax25_send_string(lat);     // Lat: 38deg and 22.20 min (.20 are NOT seconds, but 1/100th of minutes)
   ax25_send_string("N/");                // Symbol table
   ax25_send_string(lon);     // Lon: 000deg and 25.80 min
