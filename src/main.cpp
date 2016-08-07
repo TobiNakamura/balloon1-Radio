@@ -50,18 +50,6 @@ void setup(){
 
   pin_write(LED_PIN, LOW);
 
-  char lat[] = {"4916.38N"};
-  char lon[] = {"12255.28W"};
-  char tim[] = {"280720/"};
-  char alt[] = {"000000"};
-  char msg[] = {"http://sfusat.com"};
-  aprs_send(lat, lon, tim, alt, msg);
-  while (afsk_flush()) {
-    pin_write(LED_PIN, HIGH);
-  }
-  pin_write(LED_PIN, LOW);
-
-
 #ifdef debug
   Serial.println("Reseting by own volition");
   char lat[] = {"4916.38"};
