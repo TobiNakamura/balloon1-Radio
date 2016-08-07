@@ -35,6 +35,8 @@ char tim_buffer[max_buffer_length] = {};
 char alt_buffer[max_buffer_length] = {};
 char msg_buffer[max_buffer_length] = {};
 char param_buffer[max_buffer_length] = {};
+char temperature_buffer[max_buffer_length] = {};
+char voltage_buffer[max_buffer_length] = {};
 
 void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
@@ -47,24 +49,46 @@ void setup(){
   pinMode(13, OUTPUT);
   radioReset();
   afsk_setup();
-
-  pin_write(LED_PIN, LOW);
-
-#ifdef debug
-  Serial.println("Reseting by own volition");
-  char lat[] = {"4916.38"};
-  char lon[] = {"12255.28"};
-  char tim[] = {"280720"};
-  char alt[] = {"000000"};
-  char msg[] = {"http://sfusat.com"};
-  transmitService(lat, lon, tim, alt, msg);
-#endif
+  RS_UV3.print("pd0\r");//Power up the transiever
 
   due_link.listen();
 }
 
 
 void loop(){
+  voltage_buffer[0] = 0;
+  RS_UV3.listen();
+  RS_UV3.print("vt\r");
+  int written = RS_UV3.readBytesUntil('\r', voltage_buffer, max_buffer_length);
+  voltage_buffer[written] = 0;//Still need to NULL terminate
+  #ifdef debug
+  Serial.print("voltage: ");
+  Serial.write(voltage_buffer);
+  Serial.println();
+  #endif
+  clearSerialBuffers();
+
+  temperature_buffer[0] = 0;
+  RS_UV3.listen();
+  RS_UV3.print("tp\r");
+  written = RS_UV3.readBytesUntil('\r', temperature_buffer, max_buffer_length);
+  temperature_buffer[written] = 0;//Still need to NULL terminate
+  #ifdef debug
+  Serial.print("temperature: ");
+  Serial.write(temperature_buffer);
+  Serial.println();
+  #endif
+  clearSerialBuffers();
+  char lat[] = {"4916.38"};
+  char lon[] = {"12255.28"};
+  char tim[] = {"280720"};
+  char alt[] = {"000000"};
+  char msg[] = {"http://sfusat.com"};
+  aprs_send(lat, lon, tim,voltage_buffer, temperature_buffer); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
+  while (afsk_flush()) {
+    pin_write(LED_PIN, HIGH);
+  }
+
   due_link.listen();
   if(due_link.available()) {
     char commandChar = due_link.read();
@@ -99,7 +123,7 @@ void loop(){
   #endif
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
     }else if(commandChar == 'v'){
-      param_buffer[0] = 0;
+      voltage_buffer[0] = 0;
       RS_UV3.listen();
       RS_UV3.print("vt\r");
       int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
@@ -178,7 +202,7 @@ void radioReset(){
   //check if the radio is on channel 0
   //and then power off
 
-  RS_UV3.print("fs144390\r");
+  RS_UV3.print("fs145390\r");
   RS_UV3.flush();
   delay(50);
 
@@ -186,7 +210,7 @@ void radioReset(){
   RS_UV3.flush();
   delay(50);
 
-  RS_UV3.print("PW1\r");//This sets to HIGH power!!! Tobi confirms
+  RS_UV3.print("PW0\r");//This sets to HIGH power!!! Tobi confirms
   RS_UV3.flush();
   delay(50);
   //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
