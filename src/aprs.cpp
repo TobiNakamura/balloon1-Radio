@@ -1,4 +1,4 @@
-/* trackuino copyright (C) 2010  EA5HAV Javi
+  /* trackuino copyright (C) 2010  EA5HAV Javi
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -53,16 +53,11 @@ void aprs_send(char *lat, char *lon, char *gps_time, char *alt, char *msg)
   ax25_send_byte('/');                // Report w/ timestamp, no APRS messaging. $ = NMEA raw data
   // ax25_send_string("021709z");     // 021709z = 2nd day of the month, 17:09 zulu (UTC/GMT)
   ax25_send_string(gps_time);         // 170915 = 17h:09m:15s zulu (not allowed in Status Reports)
+  ax25_send_byte('/');
   ax25_send_string(lat);     // Lat: 38deg and 22.20 min (.20 are NOT seconds, but 1/100th of minutes)
-  ax25_send_byte('/');                // Symbol table
+  ax25_send_string("N/");                // Symbol table
   ax25_send_string(lon);     // Lon: 000deg and 25.80 min
-  ax25_send_byte('O');                // Symbol: O=balloon, -=QTH
-  //snprintf(temp, 4, "%03d", (int)(gps_course + 0.5));
-  /*ax25_send_string(course);             // Course (degrees)
-  ax25_send_byte('/');                // and
-  //snprintf(temp, 4, "%03d", (int)(gps_speed + 0.5));
-  ax25_send_string(speed);             // speed (knots)*/
-  //snprintf(temp, 7, "%06ld", (long)(meters_to_feet(gps_altitude) + 0.5));
+  ax25_send_string("WO");                // Symbol: O=balloon, -=QTH
   ax25_send_string(msg);     // Comment
   ax25_send_string("/A=");
   ax25_send_string(alt);

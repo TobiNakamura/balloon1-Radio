@@ -15,56 +15,41 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
-#define max_buffer_length 100
-
-
 // Trackuino custom libs
 #include "config.h"
 #include "afsk_avr.h"
 #include "aprs.h"
 #include "pin.h"
-//#include "gps.h"
-
-// Arduino/AVR libs
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 
 #define debug 1
+#define max_buffer_length 1
 
 SoftwareSerial due_link(5,6);
 SoftwareSerial RS_UV3(8,9);
-
-// Module constants
-static const uint32_t VALID_POS_TIMEOUT = 2000;  // ms
-
-// Module variables
-//static int32_t next_aprs = 0;
 
 char lat_buffer[max_buffer_length] = {};
 char lon_buffer[max_buffer_length] = {};
 char tim_buffer[max_buffer_length] = {};
 char alt_buffer[max_buffer_length] = {};
 char msg_buffer[max_buffer_length] = {};
-char vol_buffer[max_buffer_length] = {};
+char param_buffer[max_buffer_length] = {};
 
+void clearSerialBuffers();
+void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
+void radioReset();
 
-void setup()
-{
+void setup(){
   Serial.begin(115200);
-  due_link.begin(19200);
+  due_link.begin(19200); //all communication between due an uno will be terminated by \r
   RS_UV3.begin(19200);
-
   pinMode(13, OUTPUT);
-
-#ifdef DEBUG_RESET
-  Serial.println("RESET");
-#endif
+  radioReset();
   afsk_setup();
-  //gps_setup();
 
   pin_write(LED_PIN, LOW);
-  
+
   char lat[] = {"4916.38N"};
   char lon[] = {"12255.28W"};
   char tim[] = {"280720/"};
@@ -75,34 +60,23 @@ void setup()
     pin_write(LED_PIN, HIGH);
   }
   pin_write(LED_PIN, LOW);
-  /*
-  // Do not start until we get a valid time reference
-  // for slotted transmissions.
-  if (APRS_SLOT >= 0) {
-  do {
-  while (! Serial.available())
-
-  } while (! gps_decode(Serial.read()));
-  next_aprs = millis() + 1000 *
-  (APRS_PERIOD - (gps_seconds + APRS_PERIOD - APRS_SLOT) % APRS_PERIOD);
-  }
-  else {
-  next_aprs = millis();
-  }
-  */
-  //next_aprs = millis() + 1000 * APRS_PERIOD;
 
 
+#ifdef debug
+  Serial.println("Reseting by own volition");
+  char lat[] = {"4916.38"};
+  char lon[] = {"12255.28"};
+  char tim[] = {"280720"};
+  char alt[] = {"000000"};
+  char msg[] = {"http://sfusat.com"};
+  transmitService(lat, lon, tim, alt, msg);
+#endif
+
+  due_link.listen();
 }
 
 
-void loop()
-{
-  //setup interrupt from due to signal uno to start listenning
-  //while not interrupted, listen to radio serial
-
-  // Time for another APRS frame
-  //if ((int32_t) (millis() - next_aprs) >= 0) {
+void loop(){
   due_link.listen();
   if(due_link.available()) {
     char commandChar = due_link.read();
@@ -120,66 +94,116 @@ void loop()
       tim_buffer[written] = 0;
       written = due_link.readBytesUntil('\t',alt_buffer, max_buffer_length);
       alt_buffer[written] = 0;
-      written = due_link.readBytesUntil('\n',msg_buffer, max_buffer_length); //message can only be 100 bytes!
+      written = due_link.readBytesUntil('\r',msg_buffer, max_buffer_length); //message can only be 100 bytes!
       msg_buffer[written] = 0;
   #ifdef debug
-      //prints in strange order
-      //println(recieved) then time, alt, msg but no lat or lon
-      Serial.println("due_link: ");
-      Serial.println(lat_buffer);
-      Serial.println(lon_buffer);
-      Serial.println(tim_buffer);
-      Serial.println(alt_buffer);
+      Serial.print("GPS recieved: ");
+      Serial.print(lat_buffer);
+      Serial.print("N ");
+      Serial.print(lon_buffer);
+      Serial.print("W ");
+      Serial.print("epoch ");
+      Serial.print(tim_buffer);
+      Serial.print("altitude ");
+      Serial.print(alt_buffer);
+      Serial.print("m ");
       Serial.println(msg_buffer);
-      Serial.println(" GPS data Recieved");
   #endif
-
-      aprs_send(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-
-      while (afsk_flush()) {
-        pin_write(LED_PIN, HIGH);
-      }
-      pin_write(LED_PIN, LOW);
-  #ifdef DEBUG_MODEM
-      // Show modem ISR stats from the previous transmission
-      afsk_debug();
-  #endif
-    }
-    else if(commandChar == 'v'){
-      vol_buffer[0] = 0;
+      transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+    }else if(commandChar == 'v'){
+      param_buffer[0] = 0;
       RS_UV3.listen();
       RS_UV3.print("vt\r");
-      int written = RS_UV3.readBytesUntil('\r', vol_buffer, max_buffer_length);
-      vol_buffer[written] = '\r';//Readding the terminating \r to simplify processing on the due
-      vol_buffer[written+1] = 0;//Still need to NULL terminate
-      due_link.write(vol_buffer);
-      //Serial.write(vol_buffer);
-      //may need to flush write buffer here
+      int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+      param_buffer[written] = '\r';
+      param_buffer[written+1] = 0;//Still need to NULL terminate
+      due_link.write(param_buffer);
       due_link.flush();
+      #ifdef debug
+      Serial.print("voltage: ");
+      Serial.write(param_buffer);
+      #endif
+      clearSerialBuffers();
       due_link.listen();
+    } else if(commandChar == 't'){
+      param_buffer[0] = 0;
+      RS_UV3.listen();
+      RS_UV3.print("tp\r");
+      int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+      param_buffer[written] = '\r';
+      param_buffer[written+1] = 0;//Still need to NULL terminate
+      due_link.write(param_buffer);
+      due_link.flush();
+      #ifdef debug
+      Serial.print("temperature: ");
+      Serial.write(param_buffer);
+      #endif
+      clearSerialBuffers();
+      due_link.listen();
+    } else if(commandChar == 's'){//Startup setup
+      due_link.print("ack\r"); //getting ack \n at due (space in between ack and \n)
+      #ifdef debug
+      Serial.println("resetting by command of Due");
+      #endif
+      radioReset();
+      due_link.listen();
+    } else {
+      #ifdef debug
+      Serial.println("Invalid command char from Due, discarding buffer");
+      #endif
+      clearSerialBuffers();
     }
-    else if(commandChar = 's'){//Startup setup
-
-    }
   }
+}
 
-  /*RS_UV3.listen();
-  if (RS_UV3.available()) {
-    byte a_buffer[max_buffer_length] = {};
-    int buffer_length = 0;
-    buffer_length = (int)RS_UV3.readBytes(a_buffer, max_buffer_length);
-    Serial.print("From Radio: ");
-    Serial.write(a_buffer, buffer_length);
-    due_link.write(a_buffer, buffer_length);
+void transmitService(char *lat, char *lon, char *tim, char *alt, char *msg){
+  RS_UV3.print("pd0\r");//Power up the transiever
+  RS_UV3.flush();//Ensure write is complete
+  delay(1000);//Ensure the transiever has powered on
+  aprs_send(lat, lon, tim, alt, msg); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
+  while (afsk_flush()) {
+    pin_write(LED_PIN, HIGH);
   }
+  pin_write(LED_PIN, LOW);
+  #ifdef DEBUG_MODEM
+  // Show modem ISR stats from the previous transmission
+  afsk_debug();
+  #endif
+  delay(50);//This is likely not necassary
+  RS_UV3.print("pd1\r");
+  RS_UV3.flush();
+  clearSerialBuffers();
+}
 
-  if (Serial.available()) {
-    Serial.println();
-    byte a_buffer[max_buffer_length] = {};
-    int buffer_length = 0;
-    buffer_length = (int)Serial.readBytes(a_buffer, max_buffer_length);
-    Serial.print("To Radio: ");
-    Serial.write(a_buffer, buffer_length);
+void clearSerialBuffers(){
+  while(RS_UV3.available()){//Clear the read buffer in case anything is in it
+    RS_UV3.read();
   }
-*/
+  while(due_link.available()){
+    due_link.read();
+  }
+}
+
+void radioReset(){
+  RS_UV3.listen();
+
+  //check if the radio is on channel 0
+  //and then power off
+
+  RS_UV3.print("fs144390\r");
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("PW1\r");//This sets to HIGH power!!! Tobi confirms
+  RS_UV3.flush();
+  delay(50);
+  //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
+  RS_UV3.print("pd1\r");//Turn off the transiever chip
+  RS_UV3.flush();
+  delay(50);//Delay for 50 milliseconds to ensure command is copleted
+  clearSerialBuffers();
 }
