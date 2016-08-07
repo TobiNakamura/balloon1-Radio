@@ -24,7 +24,7 @@
 #include <SoftwareSerial.h>
 
 #define debug 1
-#define max_buffer_length 100
+#define max_buffer_length 1
 
 SoftwareSerial due_link(5,6);
 SoftwareSerial RS_UV3(8,9);
@@ -145,7 +145,7 @@ void loop(){
 void transmitService(char *lat, char *lon, char *tim, char *alt, char *msg){
   RS_UV3.print("pd0\r");//Power up the transiever
   RS_UV3.flush();//Ensure write is complete
-  delay(2000);//Ensure the transiever has powered on
+  delay(1000);//Ensure the transiever has powered on
   aprs_send(lat, lon, tim, alt, msg); //lat, lon, time is decimal number only, N,W,H added in aprs.cpp
   while (afsk_flush()) {
     pin_write(LED_PIN, HIGH);
@@ -174,7 +174,7 @@ void radioReset(){
   RS_UV3.listen();
 
   //check if the radio is on channel 0
-
+  //and then power off
 
   RS_UV3.print("fs144390\r");
   RS_UV3.flush();
