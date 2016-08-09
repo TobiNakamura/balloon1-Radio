@@ -61,6 +61,36 @@ void setup(){
 #endif
 
   due_link.listen();
+
+  param_buffer[0] = 0;
+  RS_UV3.listen();
+  RS_UV3.print("vt\r");
+  int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+  param_buffer[written] = '\r';
+  param_buffer[written+1] = 0;//Still need to NULL terminate
+  due_link.write(param_buffer);
+  due_link.flush();
+  #ifdef debug
+  Serial.print("voltage: ");
+  Serial.write(param_buffer);
+  #endif
+  clearSerialBuffers();
+  due_link.listen();
+
+  param_buffer[0] = 0;
+  RS_UV3.listen();
+  RS_UV3.print("tp\r");
+  written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+  param_buffer[written] = '\r';
+  param_buffer[written+1] = 0;//Still need to NULL terminate
+  due_link.write(param_buffer);
+  due_link.flush();
+  #ifdef debug
+  Serial.print("temperature: ");
+  Serial.write(param_buffer);
+  #endif
+  clearSerialBuffers();
+  due_link.listen();
 }
 
 
