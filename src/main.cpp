@@ -25,19 +25,27 @@
 
 #define debug 1
 #define max_buffer_length 50 //placeholder, replace with more accurate numbers
+#define squelchPin 7 //connected to DOUT of
 
 SoftwareSerial due_link(5,6);
 SoftwareSerial RS_UV3(8,9);
 
-char lat_buffer[max_buffer_length] = {};
-char lon_buffer[max_buffer_length] = {};
-char tim_buffer[max_buffer_length] = {};
-char alt_buffer[max_buffer_length] = {};
-char msg_buffer[max_buffer_length] = {};
-char param_buffer[max_buffer_length] = {};
+uint8_t stat_buffer_count = 0;
+char status_buffer[max_buffer_length] = {}; //debug data to be sent to due for storage
+//Format as follows
+//system reset: 00
+//due forced radio reset: 01
+char lat_buffer[] = {"4916.38"};
+char lon_buffer[] = {"12255.28"};
+char tim_buffer[] = {"280720"};
+char alt_buffer[] = {"000000"};
+char msg_buffer[100] = {};
+char param_buffer[10] = {};
 char cmd_temperature[] = {"TP\r"};
 char cmd_voltage[] = {"VT\r"};
 char parsed_data[5] = {}; // used for parsing data from radio before sending it to due
+uint8_t written = 0; //number of bytes written into a buffer
+char commandChar = 0;
 
 void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
@@ -49,17 +57,13 @@ void setup(){
   due_link.begin(19200); //all communication between due an uno will be terminated by \r
   RS_UV3.begin(19200);
   pinMode(13, OUTPUT);
+  pinMode(squelchPin, INPUT);
   radioReset();
   afsk_setup();
 
 #ifdef debug
   Serial.println("Uno System Reset");
-  char lat[] = {"4916.38"};
-  char lon[] = {"12255.28"};
-  char tim[] = {"280720"};
-  char alt[] = {"000000"};
-  char msg[] = {"http://sfusat.com"};
-  transmitService(lat, lon, tim, alt, msg);
+  transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
 #endif
 
   due_link.listen();
@@ -67,16 +71,24 @@ void setup(){
 
 
 void loop(){
+  if(stat_buffer_count>=max_buffer_length){
+    //is there a way to shift the buffer?
+    ///max_buffer_length = 0;
+  }
+
+
   due_link.listen();
   if(due_link.available()) {
-    char commandChar = due_link.read();
+    commandChar = due_link.read();
+    Serial.print("rcv: ");
+    Serial.write(commandChar);
     if(commandChar == 'a'){
       lat_buffer[0] = 0;
       lon_buffer[0] = 0;
       tim_buffer[0] = 0;
       alt_buffer[0] = 0;
       msg_buffer[0] = 0;
-      int written = due_link.readBytesUntil('\t',lat_buffer, max_buffer_length);
+      written = due_link.readBytesUntil('\t',lat_buffer, max_buffer_length);
       lat_buffer[written] = 0;
       written = due_link.readBytesUntil('\t',lon_buffer, max_buffer_length);
       lon_buffer[written] = 0;
@@ -115,10 +127,13 @@ void loop(){
     } else if(commandChar == 's'){//Startup setup
       due_link.print("ack\r"); //getting ack \n at due (space in between ack and \n)
       #ifdef debug
-      Serial.println("resetting by command of Due");
+      Serial.println("Due: Resetting Radio Configuration");
       #endif
       radioReset();
       due_link.listen();
+    } else if(commandChar == 'd'){
+      due_link.write(digitalRead(squelchPin));
+      stat_buffer_count = 0;
     } else {
       #ifdef debug
       Serial.println("Invalid command char from Due, discarding buffer");
@@ -133,7 +148,7 @@ void getRadioStatus(char *command) {
   param_buffer[0] = 0;
   RS_UV3.listen();
   RS_UV3.print(command);
-  int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+  written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
   param_buffer[written] = '\r';
   param_buffer[written+1] = 0;//Still need to NULL terminate
   due_link.write(param_buffer);
@@ -183,7 +198,11 @@ void radioReset(){
   RS_UV3.flush();
   delay(50);
 
-  RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
+  RS_UV3.print("SQ8\r");//Set squelch to 8 for proximity detection
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("AI0\r");//digital pin to show squelch
   RS_UV3.flush();
   delay(50);
 
