@@ -35,10 +35,10 @@ char status_buffer[max_buffer_length] = {}; //debug data to be sent to due for s
 //Format as follows
 //system reset: 00
 //due forced radio reset: 01
-char lat_buffer[] = {"4916.38"};
-char lon_buffer[] = {"12255.28"};
+char lat_buffer[] = {"4916.3811111"};
+char lon_buffer[] = {"12255.281111"};
 char tim_buffer[] = {"280720"};
-char alt_buffer[] = {"000000"};
+char alt_buffer[] = {"0000000000"};
 char msg_buffer[100] = {};
 char param_buffer[10] = {};
 char cmd_temperature[] = {"TP\r"};
