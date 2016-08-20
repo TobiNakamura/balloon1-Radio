@@ -49,6 +49,7 @@ void aprs_send(char *lat, char *lon, char *gps_time, char *alt, char *msg)
 #endif
   };
 
+
   ax25_send_header(addresses, sizeof(addresses)/sizeof(s_address));
   ax25_send_byte('/');                // Report w/ timestamp, no APRS messaging. $ = NMEA raw data
   // ax25_send_string("021709z");     // 021709z = 2nd day of the month, 17:09 zulu (UTC/GMT)

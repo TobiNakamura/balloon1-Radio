@@ -24,40 +24,51 @@
 #include <SoftwareSerial.h>
 
 #define debug 1
-#define max_buffer_length 1
+#define max_buffer_length 50 //placeholder, replace with more accurate numbers
+#define squelchPin 7 //connected to DOUT of
 
 SoftwareSerial due_link(5,6);
 SoftwareSerial RS_UV3(8,9);
 
-char lat_buffer[max_buffer_length] = {};
-char lon_buffer[max_buffer_length] = {};
-char tim_buffer[max_buffer_length] = {};
-char alt_buffer[max_buffer_length] = {};
-char msg_buffer[max_buffer_length] = {};
-char param_buffer[max_buffer_length] = {};
+uint8_t stat_buffer_count = 0;
+char status_buffer[max_buffer_length] = {}; //debug data to be sent to due for storage
+//Format as follows
+//system reset: 00
+//due forced radio reset: 01
+char lat_buffer[] = {"4916.3811111"};
+char lon_buffer[] = {"12255.281111"};
+char tim_buffer[] = {"280720"};
+char alt_buffer[] = {"0000000000"};
+char msg_buffer[100] = {};
+char param_buffer[10] = {};
+char cmd_temperature[] = {"TP\r"};
+char cmd_voltage[] = {"VT\r"};
+char parsed_data[5] = {}; // used for parsing data from radio before sending it to due
+uint8_t written = 0; //number of bytes written into a buffer
+char commandChar = 0;
 
 void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
 void radioReset();
+void getRadioStatus(char *command);
 
 void setup(){
   Serial.begin(115200);
   due_link.begin(19200); //all communication between due an uno will be terminated by \r
   RS_UV3.begin(19200);
   pinMode(13, OUTPUT);
+  pinMode(squelchPin, INPUT);
   radioReset();
   afsk_setup();
 
   pin_write(LED_PIN, LOW);
 
 #ifdef debug
-  Serial.println("Reseting by own volition");
-  char lat[] = {"4916.38"};
-  char lon[] = {"12255.28"};
-  char tim[] = {"280720"};
-  char alt[] = {"000000"};
-  char msg[] = {"http://sfusat.com"};
-  transmitService(lat, lon, tim, alt, msg);
+  Serial.println("Uno System Reset");
+  //while(true){
+  transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+//delay(2000);
+//}
 #endif
 
   due_link.listen();
@@ -95,16 +106,24 @@ void setup(){
 
 
 void loop(){
+  if(stat_buffer_count>=max_buffer_length){
+    //is there a way to shift the buffer?
+    ///max_buffer_length = 0;
+  }
+
+
   due_link.listen();
   if(due_link.available()) {
-    char commandChar = due_link.read();
+    commandChar = due_link.read();
+    Serial.print("rcv: ");
+    Serial.write(commandChar);
     if(commandChar == 'a'){
       lat_buffer[0] = 0;
       lon_buffer[0] = 0;
       tim_buffer[0] = 0;
       alt_buffer[0] = 0;
       msg_buffer[0] = 0;
-      int written = due_link.readBytesUntil('\t',lat_buffer, max_buffer_length);
+      written = due_link.readBytesUntil('\t',lat_buffer, max_buffer_length);
       lat_buffer[written] = 0;
       written = due_link.readBytesUntil('\t',lon_buffer, max_buffer_length);
       lon_buffer[written] = 0;
@@ -129,42 +148,27 @@ void loop(){
   #endif
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
     }else if(commandChar == 'v'){
-      param_buffer[0] = 0;
-      RS_UV3.listen();
-      RS_UV3.print("vt\r");
-      int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
-      param_buffer[written] = '\r';
-      param_buffer[written+1] = 0;//Still need to NULL terminate
-      due_link.write(param_buffer);
-      due_link.flush();
-      #ifdef debug
-      Serial.print("voltage: ");
-      Serial.write(param_buffer);
-      #endif
-      clearSerialBuffers();
-      due_link.listen();
+      getRadioStatus(cmd_voltage);
+      strncpy(parsed_data, param_buffer+5, 4);
+      parsed_data[4] = '\r';
+      parsed_data[5] = 0;
+      due_link.write(parsed_data);
     } else if(commandChar == 't'){
-      param_buffer[0] = 0;
-      RS_UV3.listen();
-      RS_UV3.print("tp\r");
-      int written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
-      param_buffer[written] = '\r';
-      param_buffer[written+1] = 0;//Still need to NULL terminate
-      due_link.write(param_buffer);
-      due_link.flush();
-      #ifdef debug
-      Serial.print("temperature: ");
-      Serial.write(param_buffer);
-      #endif
-      clearSerialBuffers();
-      due_link.listen();
+      getRadioStatus(cmd_temperature);
+      strncpy(parsed_data, param_buffer+6, 2);
+      parsed_data[2] = '\r';
+      parsed_data[3] = 0;
+      due_link.write(parsed_data);
     } else if(commandChar == 's'){//Startup setup
       due_link.print("ack\r"); //getting ack \n at due (space in between ack and \n)
       #ifdef debug
-      Serial.println("resetting by command of Due");
+      Serial.println("Due: Resetting Radio Configuration");
       #endif
       radioReset();
       due_link.listen();
+    } else if(commandChar == 'd'){
+      due_link.write(digitalRead(squelchPin));
+      stat_buffer_count = 0;
     } else {
       #ifdef debug
       Serial.println("Invalid command char from Due, discarding buffer");
@@ -172,6 +176,24 @@ void loop(){
       clearSerialBuffers();
     }
   }
+}
+
+
+void getRadioStatus(char *command) {
+  param_buffer[0] = 0;
+  RS_UV3.listen();
+  RS_UV3.print(command);
+  written = RS_UV3.readBytesUntil('\r', param_buffer, max_buffer_length);
+  param_buffer[written] = '\r';
+  param_buffer[written+1] = 0;//Still need to NULL terminate
+  due_link.write(param_buffer);
+  due_link.flush();
+  #ifdef debug
+  Serial.write(param_buffer);
+  Serial.println();
+  #endif
+  clearSerialBuffers();
+  due_link.listen();
 }
 
 void transmitService(char *lat, char *lon, char *tim, char *alt, char *msg){
@@ -207,18 +229,34 @@ void radioReset(){
 
   //check if the radio is on channel 0
   //and then power off
-
   RS_UV3.print("fs144390\r");
   RS_UV3.flush();
   delay(50);
 
-  RS_UV3.print("sq9\r");//Set squelch to 9, ignore all incoming traffic
+  RS_UV3.print("SQ8\r");//Set squelch to 8 for proximity detection
+  RS_UV3.flush();
+  delay(50);
+
+  RS_UV3.print("AI0\r");//digital pin to show squelch
   RS_UV3.flush();
   delay(50);
 
   RS_UV3.print("PW1\r");//This sets to HIGH power!!! Tobi confirms
   RS_UV3.flush();
   delay(50);
+
+    RS_UV3.print("DP0\r");//
+    RS_UV3.flush();
+    delay(50);
+
+      RS_UV3.print("AF0\r");//
+      RS_UV3.flush();
+      delay(50);
+
+        RS_UV3.print("HP0\r");//
+        RS_UV3.flush();
+        delay(50);
+
   //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
   RS_UV3.print("pd1\r");//Turn off the transiever chip
   RS_UV3.flush();

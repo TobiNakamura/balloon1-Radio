@@ -201,7 +201,7 @@ bool afsk_flush()
 
 #if PRE_EMPHASIS == 1
     if (phase_delta == PHASE_DELTA_1200)
-      s = s / 2 + 64;
+      s = s/2 + 64; //    /2+64
 #endif
 
 #ifdef DEBUG_AFSK
