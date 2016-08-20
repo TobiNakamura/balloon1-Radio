@@ -63,7 +63,10 @@ void setup(){
 
 #ifdef debug
   Serial.println("Uno System Reset");
+  //while(true){
   transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+//delay(2000);
+//}
 #endif
 
   due_link.listen();
@@ -194,7 +197,7 @@ void radioReset(){
 
   //check if the radio is on channel 0
   //and then power off
-  RS_UV3.print("fs145390\r");
+  RS_UV3.print("fs144390\r");
   RS_UV3.flush();
   delay(50);
 
@@ -209,6 +212,19 @@ void radioReset(){
   RS_UV3.print("PW1\r");//This sets to HIGH power!!! Tobi confirms
   RS_UV3.flush();
   delay(50);
+
+    RS_UV3.print("DP0\r");//
+    RS_UV3.flush();
+    delay(50);
+
+      RS_UV3.print("AF0\r");//
+      RS_UV3.flush();
+      delay(50);
+
+        RS_UV3.print("HP0\r");//
+        RS_UV3.flush();
+        delay(50);
+
   //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
   RS_UV3.print("pd1\r");//Turn off the transiever chip
   RS_UV3.flush();
