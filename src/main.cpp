@@ -46,11 +46,13 @@ char cmd_voltage[] = {"VT\r"};
 char parsed_data[5] = {}; // used for parsing data from radio before sending it to due
 uint8_t written = 0; //number of bytes written into a buffer
 char commandChar = 0;
+char cw_buffer[16] = {};
 
 void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
 void radioReset();
 void getRadioStatus(char *command);
+void sendCW(char *lat, char *lon);
 
 void setup(){
   Serial.begin(115200);
@@ -65,10 +67,10 @@ void setup(){
 
 #ifdef debug
   Serial.println("Uno System Reset");
-  while(true){
+
   transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
     delay(2000);
-  }
+
 #endif
 
   due_link.listen();
@@ -213,6 +215,16 @@ void transmitService(char *lat, char *lon, char *tim, char *alt, char *msg){
   RS_UV3.print("pd1\r");
   RS_UV3.flush();
   clearSerialBuffers();
+}
+
+void sendCW(char *lat, char *lon) {
+  cw_buffer[0] = 0;
+  strcpy(cw_buffer, "CW");
+  strcat(cw_buffer, lat);
+  strcat(cw_buffer, lon);
+  cw_buffer[14] = '\r';
+  cw_buffer[15] = 0;
+  RS_UV3.write(cw_buffer);
 }
 
 void clearSerialBuffers(){
