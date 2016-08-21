@@ -35,8 +35,8 @@ char status_buffer[max_buffer_length] = {}; //debug data to be sent to due for s
 //Format as follows
 //system reset: 00
 //due forced radio reset: 01
-char lat_buffer[] = {"4916.3811111"};
-char lon_buffer[] = {"12255.281111"};
+char lat_buffer[] = {"4916.38"};
+char lon_buffer[] = {"12255.28"};
 char tim_buffer[] = {"280720"};
 char alt_buffer[] = {"0000000000"};
 char msg_buffer[100] = {};
@@ -65,10 +65,10 @@ void setup(){
 
 #ifdef debug
   Serial.println("Uno System Reset");
-  //while(true){
+  while(true){
   transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-//delay(2000);
-//}
+    delay(2000);
+  }
 #endif
 
   due_link.listen();
