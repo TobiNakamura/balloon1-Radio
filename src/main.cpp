@@ -39,6 +39,8 @@ char lat_buffer[] = {"4916.38"};
 char lon_buffer[] = {"12255.28"};
 char tim_buffer[] = {"280720"};
 char alt_buffer[] = {"0000000000"};
+char CWmsg_buffer[] = {"G"}; // G: Due link OK, B: Due Link Down for > 20 minutes, N: No GPS Fix.
+bool noGPS = false;
 char msg_buffer[100] = {};
 char param_buffer[10] = {};
 char cmd_temperature[] = {"TP\r"};
@@ -46,13 +48,15 @@ char cmd_voltage[] = {"VT\r"};
 char parsed_data[5] = {}; // used for parsing data from radio before sending it to due
 uint8_t written = 0; //number of bytes written into a buffer
 char commandChar = 0;
-char cw_buffer[16] = {};
+char cw_buffer[19] = {};
+uint32_t lastDueGPS = 0;
+uint32_t lastErrorCW = 0;
 
 void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
 void radioReset();
 void getRadioStatus(char *command);
-void sendCW(char *lat, char *lon);
+void sendCW(char *lat, char *lon, char *CWmsg);
 
 void setup(){
   Serial.begin(115200);
@@ -66,10 +70,12 @@ void setup(){
   pin_write(LED_PIN, LOW);
 
 #ifdef debug
-  Serial.println("Uno System Reset");
+  /*Serial.println("Uno System Reset");
 
   transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-    delay(2000);
+    delay(5000);
+  sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+    delay(2000);*/
 
 #endif
 
@@ -112,7 +118,15 @@ void loop(){
     //is there a way to shift the buffer?
     ///max_buffer_length = 0;
   }
-
+  if((millis() - lastDueGPS > 240000) && (millis() - lastErrorCW > 350000)){ // After missing 2 DUE packets (which come every 3 min) TX every 3 min
+    if(!noGPS){
+      strcpy(CWmsg_buffer, "B");
+      strcpy(msg_buffer, "Due Link Down");
+    }
+    Serial.print(CWmsg_buffer);
+    transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+    sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+  }
 
   due_link.listen();
   if(due_link.available()) {
@@ -148,7 +162,13 @@ void loop(){
       Serial.print("m ");
       Serial.println(msg_buffer);
   #endif
+      lastDueGPS = millis();
+      noGPS = false;
+      strcpy(CWmsg_buffer, "G");
+      strcpy(msg_buffer, "http://sfusat.com");
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+      sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+
     }else if(commandChar == 'v'){
       getRadioStatus(cmd_voltage);
       strncpy(parsed_data, param_buffer+5, 4);
@@ -171,6 +191,10 @@ void loop(){
     } else if(commandChar == 'd'){
       due_link.write(digitalRead(squelchPin));
       stat_buffer_count = 0;
+    } else if(commandChar == 'q'){
+      noGPS = true;
+      strcpy(CWmsg_buffer, "N");
+      strcpy(msg_buffer, "No GPS Fix");
     } else {
       #ifdef debug
       Serial.println("Invalid command char from Due, discarding buffer");
@@ -217,14 +241,27 @@ void transmitService(char *lat, char *lon, char *tim, char *alt, char *msg){
   clearSerialBuffers();
 }
 
-void sendCW(char *lat, char *lon) {
+void sendCW(char *lat, char *lon, char *CWMsg) {
   cw_buffer[0] = 0;
-  strcpy(cw_buffer, "CW");
+  strcpy(cw_buffer, "ct");
   strcat(cw_buffer, lat);
   strcat(cw_buffer, lon);
-  cw_buffer[14] = '\r';
-  cw_buffer[15] = 0;
-  RS_UV3.write(cw_buffer);
+  strcat(cw_buffer, CWMsg);
+  cw_buffer[18] = '\r';
+  RS_UV3.print("pd0\r");
+  RS_UV3.flush();
+  delay(1000);
+  RS_UV3.print("fs145390\r");
+  RS_UV3.flush();
+  delay(50);
+  RS_UV3.print(cw_buffer);
+  RS_UV3.flush();
+  delay(49100);
+  RS_UV3.print("fs144390\r");
+  RS_UV3.flush();
+  delay(50);
+  RS_UV3.print("pd1\r");
+  RS_UV3.flush();
 }
 
 void clearSerialBuffers(){
@@ -257,17 +294,17 @@ void radioReset(){
   RS_UV3.flush();
   delay(50);
 
-    RS_UV3.print("DP0\r");//
-    RS_UV3.flush();
-    delay(50);
+  RS_UV3.print("DP0\r");//
+  RS_UV3.flush();
+  delay(50);
 
-      RS_UV3.print("AF0\r");//
-      RS_UV3.flush();
-      delay(50);
+  RS_UV3.print("AF0\r");//
+  RS_UV3.flush();
+  delay(50);
 
-        RS_UV3.print("HP0\r");//
-        RS_UV3.flush();
-        delay(50);
+  RS_UV3.print("HP0\r");//
+  RS_UV3.flush();
+  delay(50);
 
   //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
   RS_UV3.print("pd1\r");//Turn off the transiever chip
