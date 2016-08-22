@@ -39,6 +39,7 @@ char lat_buffer[] = {"4916.38"};
 char lon_buffer[] = {"12255.28"};
 char tim_buffer[] = {"280720"};
 char alt_buffer[] = {"0000000000"};
+char CWmsg_buffer[] = {"G"}; // G: Due link OK, B: Due Link Down for > 20 minutes
 char msg_buffer[100] = {};
 char param_buffer[10] = {};
 char cmd_temperature[] = {"TP\r"};
@@ -46,13 +47,15 @@ char cmd_voltage[] = {"VT\r"};
 char parsed_data[5] = {}; // used for parsing data from radio before sending it to due
 uint8_t written = 0; //number of bytes written into a buffer
 char commandChar = 0;
-char cw_buffer[16] = {};
+char cw_buffer[19] = {};
+uint32_t lastDueGPS = 0;
+uint32_t lastErrorCW = 0;
 
 void clearSerialBuffers();
 void transmitService(char *lat, char *lon, char *time, char *alt, char *msg);
 void radioReset();
 void getRadioStatus(char *command);
-void sendCW(char *lat, char *lon);
+void sendCW(char *lat, char *lon, char *CWmsg);
 
 void setup(){
   Serial.begin(115200);
@@ -69,6 +72,8 @@ void setup(){
   Serial.println("Uno System Reset");
 
   transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+    delay(5000);
+  sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
     delay(2000);
 
 #endif
@@ -112,7 +117,15 @@ void loop(){
     //is there a way to shift the buffer?
     ///max_buffer_length = 0;
   }
-
+  if((millis() - lastDueGPS > 1200000) && (millis() - lastErrorCW > 600000)){
+    strcpy(CWmsg_buffer, "B");
+    sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+    strcpy(msg_buffer, "Due Link Down");
+    transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+  }else{
+    strcpy(CWmsg_buffer, "G");
+    strcpy(msg_buffer, "http://sfusat.com");
+  }
 
   due_link.listen();
   if(due_link.available()) {
@@ -148,7 +161,10 @@ void loop(){
       Serial.print("m ");
       Serial.println(msg_buffer);
   #endif
+      lastDueGPS = millis();
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
+
+      sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
     }else if(commandChar == 'v'){
       getRadioStatus(cmd_voltage);
       strncpy(parsed_data, param_buffer+5, 4);
@@ -217,14 +233,22 @@ void transmitService(char *lat, char *lon, char *tim, char *alt, char *msg){
   clearSerialBuffers();
 }
 
-void sendCW(char *lat, char *lon) {
+void sendCW(char *lat, char *lon, char *CWMsg) {
   cw_buffer[0] = 0;
-  strcpy(cw_buffer, "CW");
+  strcpy(cw_buffer, "ct");
   strcat(cw_buffer, lat);
   strcat(cw_buffer, lon);
-  cw_buffer[14] = '\r';
-  cw_buffer[15] = 0;
-  RS_UV3.write(cw_buffer);
+  strcat(cw_buffer, CWMsg);
+  cw_buffer[18] = '\r';
+  Serial.print(cw_buffer);
+  RS_UV3.print("pd0\r");
+  RS_UV3.flush();
+  delay(1000);
+  RS_UV3.print(cw_buffer);
+  RS_UV3.flush();
+  delay(5000);
+  RS_UV3.print("pd1\r");
+  RS_UV3.flush();
 }
 
 void clearSerialBuffers(){
@@ -257,17 +281,17 @@ void radioReset(){
   RS_UV3.flush();
   delay(50);
 
-    RS_UV3.print("DP0\r");//
-    RS_UV3.flush();
-    delay(50);
+  RS_UV3.print("DP0\r");//
+  RS_UV3.flush();
+  delay(50);
 
-      RS_UV3.print("AF0\r");//
-      RS_UV3.flush();
-      delay(50);
+  RS_UV3.print("AF0\r");//
+  RS_UV3.flush();
+  delay(50);
 
-        RS_UV3.print("HP0\r");//
-        RS_UV3.flush();
-        delay(50);
+  RS_UV3.print("HP0\r");//
+  RS_UV3.flush();
+  delay(50);
 
   //last item: RS_UV3 is placed into low power mode in order to save battery. It will then be woken whenever data need to be sent
   RS_UV3.print("pd1\r");//Turn off the transiever chip
