@@ -251,7 +251,7 @@ void sendCW(char *lat, char *lon, char *CWMsg) {
   RS_UV3.print("pd0\r");
   RS_UV3.flush();
   delay(1000);
-  RS_UV3.print("fs145390\r");
+  RS_UV3.print("fs144360\r"); // TX CW on OPS 9
   RS_UV3.flush();
   delay(50);
   RS_UV3.print(cw_buffer);
