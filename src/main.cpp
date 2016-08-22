@@ -39,7 +39,7 @@ char lat_buffer[] = {"4916.38"};
 char lon_buffer[] = {"12255.28"};
 char tim_buffer[] = {"280720"};
 char alt_buffer[] = {"0000000000"};
-char CWmsg_buffer[] = {"G"}; // G: Due link OK, B: Due Link Down for > 20 minutes
+char CWmsg_buffer[] = {"G"}; // G: Due link OK, B: Due Link Down for > 20 minutes, N: No GPS Fix.
 char msg_buffer[100] = {};
 char param_buffer[10] = {};
 char cmd_temperature[] = {"TP\r"};
@@ -69,12 +69,12 @@ void setup(){
   pin_write(LED_PIN, LOW);
 
 #ifdef debug
-  Serial.println("Uno System Reset");
+  /*Serial.println("Uno System Reset");
 
   transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
     delay(5000);
   sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
-    delay(2000);
+    delay(2000);*/
 
 #endif
 
@@ -117,14 +117,12 @@ void loop(){
     //is there a way to shift the buffer?
     ///max_buffer_length = 0;
   }
-  if((millis() - lastDueGPS > 1200000) && (millis() - lastErrorCW > 600000)){
+  if((millis() - lastDueGPS > 360000) && (millis() - lastErrorCW > 240000)){ // After missing 2 DUE packets (which come every 3 min) TX every 3 min
     strcpy(CWmsg_buffer, "B");
-    sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
     strcpy(msg_buffer, "Due Link Down");
+    Serial.print(CWmsg_buffer);
     transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-  }else{
-    strcpy(CWmsg_buffer, "G");
-    strcpy(msg_buffer, "http://sfusat.com");
+    sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
   }
 
   due_link.listen();
@@ -132,6 +130,8 @@ void loop(){
     commandChar = due_link.read();
     Serial.print("rcv: ");
     Serial.write(commandChar);
+    strcpy(CWmsg_buffer, "N");
+    strcpy(msg_buffer, "No GPS Fix");
     if(commandChar == 'a'){
       lat_buffer[0] = 0;
       lon_buffer[0] = 0;
@@ -162,9 +162,11 @@ void loop(){
       Serial.println(msg_buffer);
   #endif
       lastDueGPS = millis();
+      strcpy(CWmsg_buffer, "G");
+      strcpy(msg_buffer, "http://sfusat.com");
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-
       sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+
     }else if(commandChar == 'v'){
       getRadioStatus(cmd_voltage);
       strncpy(parsed_data, param_buffer+5, 4);
@@ -240,13 +242,12 @@ void sendCW(char *lat, char *lon, char *CWMsg) {
   strcat(cw_buffer, lon);
   strcat(cw_buffer, CWMsg);
   cw_buffer[18] = '\r';
-  Serial.print(cw_buffer);
   RS_UV3.print("pd0\r");
   RS_UV3.flush();
   delay(1000);
   RS_UV3.print(cw_buffer);
   RS_UV3.flush();
-  delay(5000);
+  delay(49100);
   RS_UV3.print("pd1\r");
   RS_UV3.flush();
 }
