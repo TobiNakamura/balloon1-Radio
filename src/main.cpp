@@ -41,6 +41,7 @@ char tim_buffer[] = {"280720"};
 char alt_buffer[] = {"0000000000"};
 char CWmsg_buffer[] = {"G"}; // G: Due link OK, B: Due Link Down for > 20 minutes, N: No GPS Fix.
 bool noGPS = false;
+bool oddAPRS = true;
 char msg_buffer[100] = {};
 char param_buffer[10] = {};
 char cmd_temperature[] = {"TP\r"};
@@ -64,6 +65,7 @@ void setup(){
   RS_UV3.begin(19200);
   pinMode(13, OUTPUT);
   pinMode(squelchPin, INPUT);
+  delay(1000);
   radioReset();
   afsk_setup();
 
@@ -118,14 +120,17 @@ void loop(){
     //is there a way to shift the buffer?
     ///max_buffer_length = 0;
   }
-  if((millis() - lastDueGPS > 240000) && (millis() - lastErrorCW > 350000)){ // After missing 2 DUE packets (which come every 3 min) TX every 3 min
+  if((millis() - lastDueGPS > 600000) && (millis() - lastErrorCW > 300000)){ // After missing 2 DUE packets (which come every 3 min) TX every 3 min
     if(!noGPS){
       strcpy(CWmsg_buffer, "B");
       strcpy(msg_buffer, "Due Link Down");
     }
     Serial.print(CWmsg_buffer);
     transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-    sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+    if(oddAPRS){
+      sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+    }
+    oddAPRS = !oddAPRS;
   }
 
   due_link.listen();
@@ -167,7 +172,10 @@ void loop(){
       strcpy(CWmsg_buffer, "G");
       strcpy(msg_buffer, "http://sfusat.com");
       transmitService(lat_buffer, lon_buffer, tim_buffer, alt_buffer, msg_buffer);
-      sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+      if(oddAPRS){
+        sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
+      }
+      oddAPRS = !oddAPRS;
 
     }else if(commandChar == 'v'){
       getRadioStatus(cmd_voltage);
@@ -202,6 +210,7 @@ void loop(){
       clearSerialBuffers();
     }
   }
+
 }
 
 
@@ -256,6 +265,7 @@ void sendCW(char *lat, char *lon, char *CWMsg) {
   delay(50);
   RS_UV3.print(cw_buffer);
   RS_UV3.flush();
+  Serial.println(cw_buffer);
   delay(49100);
   RS_UV3.print("fs144390\r");
   RS_UV3.flush();
