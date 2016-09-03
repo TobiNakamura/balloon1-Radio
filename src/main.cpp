@@ -120,7 +120,7 @@ void loop(){
     //is there a way to shift the buffer?
     ///max_buffer_length = 0;
   }
-  if((millis() - lastDueGPS > 600000) && (millis() - lastErrorCW > 300000)){ // After missing 2 DUE packets (which come every 3 min) TX every 3 min
+  if((millis() - lastDueGPS > 1000) && (millis() - lastErrorCW > 300000)){ // After missing 2 DUE packets (which come every 5 min) tx every 6
     if(!noGPS){
       strcpy(CWmsg_buffer, "B");
       strcpy(msg_buffer, "Due Link Down");
@@ -131,6 +131,7 @@ void loop(){
       sendCW(lat_buffer, lon_buffer, CWmsg_buffer);
     }
     oddAPRS = !oddAPRS;
+    lastErrorCW = millis();
   }
 
   due_link.listen();
@@ -266,7 +267,7 @@ void sendCW(char *lat, char *lon, char *CWMsg) {
   RS_UV3.print(cw_buffer);
   RS_UV3.flush();
   Serial.println(cw_buffer);
-  delay(49100);
+  delay(50000);
   RS_UV3.print("fs144390\r");
   RS_UV3.flush();
   delay(50);
