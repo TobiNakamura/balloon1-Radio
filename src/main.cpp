@@ -120,7 +120,7 @@ void loop(){
     //is there a way to shift the buffer?
     ///max_buffer_length = 0;
   }
-  if((millis() - lastDueGPS > 1000) && (millis() - lastErrorCW > 300000)){ // After missing 2 DUE packets (which come every 5 min) tx every 6
+  if((millis() - lastDueGPS > 300000) && (millis() - lastErrorCW > 300000)){ // After missing 2 DUE packets (which come every 5 min) tx every 6
     if(!noGPS){
       strcpy(CWmsg_buffer, "B");
       strcpy(msg_buffer, "Due Link Down");
